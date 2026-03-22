@@ -65,7 +65,7 @@ export async function listPosts(req: Request, res: Response) {
 // GET /api/posts/:slug
 export async function getPostBySlug(req: Request, res: Response) {
   try {
-    const { slug } = req.params;
+    const slug = req.params.slug as string;
 
     const post = await prisma.post.findUnique({
       where: { slug },
@@ -136,8 +136,9 @@ export async function listAllPosts(req: Request, res: Response) {
 // GET /api/posts/admin/:id
 export async function getPostById(req: Request, res: Response) {
   try {
+    const id = req.params.id as string;
     const post = await prisma.post.findUnique({
-      where: { id: req.params.id },
+      where: { id },
       include: { author: { select: { fullName: true } } },
     });
 
@@ -212,7 +213,7 @@ export async function createPost(req: Request, res: Response) {
 // PUT /api/posts/:id
 export async function updatePost(req: Request, res: Response) {
   try {
-    const { id } = req.params;
+    const id = req.params.id as string;
     const { title, excerpt, content, tags, status } = req.body;
 
     const existing = await prisma.post.findUnique({ where: { id } });
@@ -265,7 +266,7 @@ export async function updatePost(req: Request, res: Response) {
 // DELETE /api/posts/:id
 export async function deletePost(req: Request, res: Response) {
   try {
-    const { id } = req.params;
+    const id = req.params.id as string;
 
     const existing = await prisma.post.findUnique({ where: { id } });
     if (!existing) {
