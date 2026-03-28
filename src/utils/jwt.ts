@@ -13,7 +13,6 @@ const REFRESH_EXPIRES = process.env.JWT_REFRESH_EXPIRES_IN || "7d";
 
 export interface TokenPayload {
   userId: string;
-  email: string;
   role: string;
 }
 
