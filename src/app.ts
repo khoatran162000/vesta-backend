@@ -1,8 +1,4 @@
-/**
- * FILE: app.ts
- * PATH: apps/api/src/app.ts
- * MÔ TẢ: Entry point — Express server với đầy đủ middleware, CORS, routes, static files
- */
+// FILE: src/app.ts — Entry point + cronjob scheduler
 
 import express from "express";
 import cors from "cors";
@@ -14,22 +10,18 @@ import rateLimit from "express-rate-limit";
 import path from "path";
 import dotenv from "dotenv";
 
-// Load .env
 dotenv.config();
 
 import routes from "./routes";
+import { startScheduler } from "./jobs/scheduler";
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
 // ═══════════════════════ MIDDLEWARE ═══════════════════════
 
-// Security headers
-app.use(helmet({
-  crossOriginResourcePolicy: { policy: "cross-origin" }, // Cho phép load ảnh từ domain khác
-}));
+app.use(helmet({ crossOriginResourcePolicy: { policy: "cross-origin" } }));
 
-// CORS — cho phép frontend gọi API
 const corsOrigins = (process.env.CORS_ORIGINS || "http://localhost:3000")
   .split(",")
   .map((s) => s.trim());
@@ -41,37 +33,31 @@ app.use(cors({
   allowedHeaders: ["Content-Type", "Authorization"],
 }));
 
-// Body parsing
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 app.use(cookieParser());
-
-// Compression
 app.use(compression());
 
-// Logging
 if (process.env.NODE_ENV === "development") {
   app.use(morgan("dev"));
 } else {
   app.use(morgan("combined"));
 }
 
-// Rate limiting — chống brute force
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 phút
-  max: 100, // tối đa 100 requests / 15 phút / IP
+  windowMs: 15 * 60 * 1000,
+  max: 100,
   message: { success: false, message: "Quá nhiều request, vui lòng thử lại sau." },
 });
 app.use("/api/auth/login", rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 10, // Login chỉ cho 10 lần / 15 phút
+  max: 10,
   message: { success: false, message: "Quá nhiều lần đăng nhập, vui lòng thử lại sau 15 phút." },
 }));
 app.use("/api", limiter);
 
 // ═══════════════════════ STATIC FILES ═══════════════════════
 
-// Serve uploaded files (ảnh blog, avatar)
 app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 
 // ═══════════════════════ ROUTES ═══════════════════════
@@ -80,25 +66,18 @@ app.use("/api", routes);
 
 // ═══════════════════════ ERROR HANDLING ═══════════════════════
 
-// 404
-app.use((_req, res) => {
+app.use((_req: express.Request, res: express.Response) => {
   res.status(404).json({ success: false, message: "Route không tồn tại" });
 });
 
-// Global error handler
 app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   console.error("Unhandled error:", err);
-
-  // Multer file size error
   if (err.code === "LIMIT_FILE_SIZE") {
     return res.status(400).json({ success: false, message: "File quá lớn. Tối đa 10MB." });
   }
-
-  // Multer file type error
   if (err.message?.includes("Chỉ chấp nhận file ảnh")) {
     return res.status(400).json({ success: false, message: err.message });
   }
-
   return res.status(500).json({ success: false, message: "Lỗi server" });
 });
 
@@ -113,6 +92,9 @@ app.listen(PORT, () => {
   ║   API:  http://localhost:${PORT}/api        ║
   ╚══════════════════════════════════════════╝
   `);
+
+  // Khởi động cronjob scheduler
+  startScheduler();
 });
 
 export default app;
