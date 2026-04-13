@@ -1,19 +1,25 @@
-// FILE: prisma/seed.ts — Seed data hoàn chỉnh cho VESTA UNI
-// Chạy: npx prisma db seed
+// FILE: prisma/seed-posts.ts — Nội dung bài viết mẫu phong phú
+// Import và gọi function này trong seed.ts chính
 
-import { PrismaClient } from "@prisma/client";
-import bcrypt from "bcryptjs";
+/**
+ * Tạo nội dung HTML cho bài viết IELTS Reading Guide
+ * Sử dụng đúng các HTML elements mà blog detail page sẽ style:
+ * - h2 → Section heading với gold underline
+ * - h3 → Subsection heading
+ * - blockquote → Card info/strategy (viền trái navy)
+ * - pre > code → Answer bar (nền navy, text vàng)
+ * - ol → Numbered steps (navy circles)
+ * - ul → Bullet points (gold dots)
+ * - table → Bảng tổng hợp (navy header)
+ * - hr → Gold dashed divider
+ * - mark → Highlight vàng
+ */
 
-const prisma = new PrismaClient();
-
-/* ═══════════════════════════════════════════
-   SAMPLE BLOG POSTS — Nội dung phong phú
-   ═══════════════════════════════════════════ */
-
-const SAMPLE_POSTS = [
+export const SAMPLE_POSTS = [
   {
     title: "Tổng hợp tất cả dạng bài IELTS Reading",
     slug: "tong-hop-dang-bai-ielts-reading",
+    thumbnailUrl: "/images/blog/ielts-reading-guide.jpg",
     content: `
 <h2>Tổng quan IELTS Academic Reading</h2>
 
@@ -91,6 +97,16 @@ const SAMPLE_POSTS = [
 <p>Chọn đáp án đúng (A/B/C/D hoặc A-E chọn 2). Thứ tự câu hỏi THEO thứ tự bài đọc — đây là ưu điểm lớn giúp locate đáp án nhanh hơn.</p>
 </blockquote>
 
+<blockquote>
+<p><strong>— ĐIỂM CẦN NHỚ</strong></p>
+<ul>
+<li>Câu hỏi theo thứ tự bài → <strong>scan theo vùng</strong></li>
+<li>Đáp án nhiều thường dùng từ trong bài nhưng sai nghĩa</li>
+<li>Đọc câu hỏi <strong>trước</strong> khi đọc đoạn liên quan</li>
+<li>Kiểu "choose TWO" cần cẩn thận — không thứ tự</li>
+</ul>
+</blockquote>
+
 <h3>⚡ Chiến thuật làm bài</h3>
 
 <ol>
@@ -137,6 +153,16 @@ const SAMPLE_POSTS = [
 <p>Hoàn thành câu bằng cách điền từ lấy <strong>trực tiếp từ bài đọc</strong>. Thường có giới hạn số từ (NO MORE THAN TWO WORDS / ONE WORD ONLY).</p>
 </blockquote>
 
+<blockquote>
+<p><strong>— ĐIỂM CẦN NHỚ</strong></p>
+<ul>
+<li>Chỉ dùng từ <strong>có sẵn trong bài</strong> — không paraphrase</li>
+<li>Đếm số từ kỹ: "a plastic bottle" = 3 từ (có A)</li>
+<li>Câu hoàn thành phải đúng ngữ pháp</li>
+<li>Câu hỏi theo thứ tự bài đọc</li>
+</ul>
+</blockquote>
+
 <h3>⚡ Chiến thuật làm bài</h3>
 
 <ol>
@@ -149,11 +175,103 @@ const SAMPLE_POSTS = [
 
 <hr />
 
+<h2>Summary Completion</h2>
+
+<blockquote>
+<p><strong>— DẠNG BÀI LÀ GÌ?</strong></p>
+<p>Điền vào chỗ trống trong một đoạn tóm tắt (summary). Có hai biến thể: điền từ từ bài đọc (<em>word from the text</em>), hoặc chọn từ danh sách cho sẵn (<em>from a list A–H</em>).</p>
+</blockquote>
+
+<blockquote>
+<p><strong>— ĐIỂM CẦN NHỚ</strong></p>
+<ul>
+<li>Summary thường cover 1-2 đoạn văn, không phải toàn bài</li>
+<li>Đọc summary để nắm chủ đề trước khi tìm bài</li>
+<li>Khi có danh sách: coi chừng từ nhiều có nghĩa gần đúng</li>
+<li>Câu trong summary theo thứ tự bài đọc</li>
+</ul>
+</blockquote>
+
+<h3>⚡ Chiến thuật làm bài</h3>
+
+<ol>
+<li>Đọc toàn bộ summary trước để hiểu chủ đề đang nói về gì</li>
+<li>Xác định vùng bài đọc mà summary đang tóm tắt</li>
+<li>Làm từng câu theo thứ tự — dùng từ trước và sau chỗ trống để predict loại từ</li>
+<li>Nếu có list: loại trừ từ ngữ pháp không phù hợp trước</li>
+<li>Đọc lại summary sau khi điền để kiểm tra logic toàn đoạn</li>
+</ol>
+
+<hr />
+
+<h2>Short Answer Questions</h2>
+
+<blockquote>
+<p><strong>— DẠNG BÀI LÀ GÌ?</strong></p>
+<p>Câu hỏi dạng <em>What? When? Where? How many?</em> — trả lời bằng từ lấy trực tiếp từ bài đọc. Giới hạn thường là NO MORE THAN THREE WORDS.</p>
+</blockquote>
+
+<blockquote>
+<p><strong>— ĐIỂM CẦN NHỚ</strong></p>
+<ul>
+<li>Câu hỏi theo thứ tự bài đọc</li>
+<li>Chỉ điền <strong>từ trong bài</strong> — không paraphrase</li>
+<li>Câu trả lời thường là noun phrase cụ thể</li>
+<li>Đây là dạng bài <strong>nhanh nhất</strong> để làm</li>
+</ul>
+</blockquote>
+
+<h3>⚡ Chiến thuật làm bài</h3>
+
+<ol>
+<li>Đọc câu hỏi — xác định loại thông tin cần tìm (số, tên, địa điểm, lý do)</li>
+<li>Scan bài theo thứ tự — tìm vùng liên quan</li>
+<li>Locate câu trả lời chính xác trong bài</li>
+<li>Chép đúng từ từ bài — kiểm tra số từ</li>
+</ol>
+
+<hr />
+
+<h2>Diagram Labelling</h2>
+
+<blockquote>
+<p><strong>— DẠNG BÀI LÀ GÌ?</strong></p>
+<p>Điền nhãn vào các phần của sơ đồ, hình vẽ, hoặc bản đồ. Thông tin được mô tả trong bài đọc. Giới hạn từ áp dụng tương tự các dạng điền từ khác.</p>
+</blockquote>
+
+<blockquote>
+<p><strong>— ĐIỂM CẦN NHỚ</strong></p>
+<ul>
+<li>Sơ đồ thường là thiết bị, quy trình sinh học, hoặc địa lý</li>
+<li>Mũi tên chỉ hướng giúp xác định thứ tự đọc</li>
+<li>Dùng từ <strong>chính xác từ bài</strong></li>
+<li>Thường xuất hiện ít câu hơn các dạng khác</li>
+</ul>
+</blockquote>
+
+<h3>⚡ Chiến thuật làm bài</h3>
+
+<ol>
+<li>Nhìn tổng thể sơ đồ — đang mô tả cái gì?</li>
+<li>Dùng label/nhãn đã có trong sơ đồ để locate vùng bài đọc</li>
+<li>Đọc kỹ phần mô tả đó — tìm từ cho phần chưa có nhãn</li>
+<li>Điền từ chính xác — chú ý plural/singular nếu cần</li>
+</ol>
+
+<hr />
+
 <h2>Bảng Tổng hợp Nhanh — 11 Dạng Bài</h2>
 
 <table>
 <thead>
-<tr><th>#</th><th>Dạng bài</th><th>Kiểm tra</th><th>Thứ tự?</th><th>Nguồn đáp án</th><th>Độ khó</th></tr>
+<tr>
+<th>#</th>
+<th>Dạng bài</th>
+<th>Kiểm tra</th>
+<th>Thứ tự?</th>
+<th>Nguồn đáp án</th>
+<th>Độ khó</th>
+</tr>
 </thead>
 <tbody>
 <tr><td>1</td><td>Matching Headings</td><td>Ý chính đoạn văn</td><td>Không</td><td>List cho sẵn</td><td>Khó</td></tr>
@@ -203,6 +321,7 @@ const SAMPLE_POSTS = [
   {
     title: "10 Mẹo Luyện Listening IELTS Hiệu Quả",
     slug: "10-meo-luyen-listening-ielts",
+    thumbnailUrl: "/images/blog/ielts-listening-tips.jpg",
     content: `
 <h2>Tổng quan IELTS Listening</h2>
 
@@ -252,34 +371,13 @@ const SAMPLE_POSTS = [
 <tr><td>4</td><td>Bài giảng học thuật</td><td>1</td><td>Rất khó</td></tr>
 </tbody>
 </table>
-
-<h2>Mẹo 6: Luyện dictation</h2>
-
-<p>Nghe một câu → pause → viết lại nguyên văn → so sánh. Đây là cách luyện nghe chi tiết hiệu quả nhất.</p>
-
-<h2>Mẹo 7: Làm quen với accent khác nhau</h2>
-
-<p>IELTS Listening dùng cả accent British, Australian, và American. Nghe BBC, ABC News, CNN để quen tai.</p>
-
-<h2>Mẹo 8: Đừng kẹt ở một câu</h2>
-
-<blockquote>
-<p>⚠ <strong>Nguyên tắc quan trọng:</strong> Nếu miss một câu, bỏ qua ngay và focus vào câu tiếp theo. Đừng để mất 2-3 câu vì cố nghe lại câu đã qua.</p>
-</blockquote>
-
-<h2>Mẹo 9: Viết đáp án bằng bút chì</h2>
-
-<p>Dùng bút chì để dễ sửa. Khi transfer đáp án, kiểm tra kỹ spelling và số thứ tự câu.</p>
-
-<h2>Mẹo 10: Tập trung 100% trong 30 phút</h2>
-
-<p>Listening chỉ phát <strong>MỘT LẦN</strong>. Tắt hết thông báo, tìm chỗ yên tĩnh, và tập trung tuyệt đối.</p>
     `.trim(),
   },
 
   {
     title: "Cách Viết IELTS Writing Task 2 Đạt Band 7+",
     slug: "cach-viet-ielts-writing-task-2-band-7",
+    thumbnailUrl: "/images/blog/ielts-writing-task2.jpg",
     content: `
 <h2>Cấu trúc bài Writing Task 2</h2>
 
@@ -289,9 +387,9 @@ const SAMPLE_POSTS = [
 <p><strong>4 tiêu chí chấm điểm (mỗi tiêu chí 25%):</strong></p>
 <ul>
 <li><strong>Task Response</strong> — Trả lời đúng yêu cầu đề</li>
-<li><strong>Coherence &amp; Cohesion</strong> — Logic và liên kết</li>
+<li><strong>Coherence & Cohesion</strong> — Logic và liên kết</li>
 <li><strong>Lexical Resource</strong> — Vốn từ vựng</li>
-<li><strong>Grammatical Range &amp; Accuracy</strong> — Ngữ pháp đa dạng và chính xác</li>
+<li><strong>Grammatical Range & Accuracy</strong> — Ngữ pháp đa dạng và chính xác</li>
 </ul>
 </blockquote>
 
@@ -305,10 +403,10 @@ const SAMPLE_POSTS = [
 <h3>2. Discussion (Discuss both views)</h3>
 <p>"Discuss both views and give your opinion." — Phân tích cả 2 phía rồi nêu quan điểm riêng.</p>
 
-<h3>3. Problem &amp; Solution</h3>
+<h3>3. Problem & Solution</h3>
 <p>"What are the problems and solutions?" — Nêu vấn đề + đề xuất giải pháp cụ thể.</p>
 
-<h3>4. Advantages &amp; Disadvantages</h3>
+<h3>4. Advantages & Disadvantages</h3>
 <p>"Do the advantages outweigh the disadvantages?" — Phân tích lợi/hại, kết luận phía nào nặng hơn.</p>
 
 <h3>5. Two-part Question</h3>
@@ -328,240 +426,6 @@ const SAMPLE_POSTS = [
 <blockquote>
 <p>⚠ <strong>Lỗi phổ biến nhất:</strong> Viết lan man không có topic sentence rõ ràng ở đầu mỗi đoạn. Giám khảo đọc topic sentence đầu tiên — nếu không rõ, cả đoạn bị đánh giá thấp.</p>
 </blockquote>
-
-<hr />
-
-<h2>Từ vựng band 7+ thường dùng</h2>
-
-<table>
-<thead>
-<tr><th>Thay vì dùng</th><th>Hãy dùng</th><th>Ví dụ</th></tr>
-</thead>
-<tbody>
-<tr><td>very important</td><td>crucial / paramount</td><td>Education is <strong>paramount</strong> for development.</td></tr>
-<tr><td>more and more</td><td>an increasing number of</td><td><strong>An increasing number of</strong> people work remotely.</td></tr>
-<tr><td>good</td><td>beneficial / advantageous</td><td>This policy is <strong>beneficial</strong> for society.</td></tr>
-<tr><td>bad</td><td>detrimental / adverse</td><td>Pollution has <strong>detrimental</strong> effects on health.</td></tr>
-<tr><td>think</td><td>contend / maintain / assert</td><td>I <strong>contend</strong> that education should be free.</td></tr>
-</tbody>
-</table>
-
-<h2>Lỗi ngữ pháp hay mắc phải</h2>
-
-<ol>
-<li><strong>Run-on sentences:</strong> Viết câu quá dài không có dấu chấm. Giữ mỗi câu 15-25 từ.</li>
-<li><strong>Thiếu article:</strong> "Government should..." → "<strong>The</strong> government should..."</li>
-<li><strong>Subject-verb agreement:</strong> "The number of students <strong>has</strong> increased" (không phải "have")</li>
-<li><strong>Dùng "I think" quá nhiều:</strong> Thay bằng "It is argued that...", "From my perspective..."</li>
-</ol>
-    `.trim(),
-  },
-
-  {
-    title: "Từ Vựng IELTS Theo Chủ Đề: 50 Từ Must-Know",
-    slug: "tu-vung-ielts-theo-chu-de",
-    content: `
-<h2>Tại sao cần học từ vựng theo chủ đề?</h2>
-
-<p>IELTS xoay quanh khoảng <strong>15-20 chủ đề chính</strong>. Nắm vững từ vựng theo từng chủ đề giúp bạn tự tin hơn trong cả 4 kỹ năng: Listening, Reading, Writing, và Speaking.</p>
-
-<blockquote>
-<p><strong>Nguyên tắc học từ vựng hiệu quả:</strong></p>
-<ul>
-<li>Học theo <strong>cụm từ</strong> (collocations), không học từ đơn lẻ</li>
-<li>Mỗi từ cần biết: nghĩa, cách phát âm, cách dùng trong câu</li>
-<li>Ôn lại sau 1 ngày, 3 ngày, 7 ngày, 30 ngày (spaced repetition)</li>
-<li>Viết ít nhất 2 câu ví dụ cho mỗi từ mới</li>
-</ul>
-</blockquote>
-
-<hr />
-
-<h2>Chủ đề 1: Education</h2>
-
-<ol>
-<li><strong>Curriculum</strong> (n) — chương trình giảng dạy: "The national <em>curriculum</em> needs to be modernized."</li>
-<li><strong>Academic performance</strong> — kết quả học tập: "Stress can negatively affect <em>academic performance</em>."</li>
-<li><strong>Tertiary education</strong> — giáo dục đại học: "<em>Tertiary education</em> should be accessible to all."</li>
-<li><strong>Vocational training</strong> — đào tạo nghề: "<em>Vocational training</em> provides practical skills."</li>
-<li><strong>Literacy rate</strong> — tỷ lệ biết chữ: "The country's <em>literacy rate</em> has improved significantly."</li>
-</ol>
-
-<hr />
-
-<h2>Chủ đề 2: Environment</h2>
-
-<ol>
-<li><strong>Carbon footprint</strong> — dấu chân carbon: "We should reduce our <em>carbon footprint</em>."</li>
-<li><strong>Renewable energy</strong> — năng lượng tái tạo: "<em>Renewable energy</em> sources include solar and wind."</li>
-<li><strong>Biodiversity</strong> — đa dạng sinh học: "Deforestation threatens <em>biodiversity</em>."</li>
-<li><strong>Sustainability</strong> — tính bền vững: "<em>Sustainability</em> should be a priority for all governments."</li>
-<li><strong>Ecological balance</strong> — cân bằng sinh thái: "Human activities disrupt the <em>ecological balance</em>."</li>
-</ol>
-
-<hr />
-
-<h2>Chủ đề 3: Technology</h2>
-
-<ol>
-<li><strong>Artificial intelligence</strong> — trí tuệ nhân tạo: "<em>AI</em> is transforming many industries."</li>
-<li><strong>Digital literacy</strong> — hiểu biết số: "<em>Digital literacy</em> is essential in the modern workplace."</li>
-<li><strong>Automation</strong> — tự động hóa: "<em>Automation</em> may lead to job displacement."</li>
-<li><strong>Cybersecurity</strong> — an ninh mạng: "<em>Cybersecurity</em> threats are increasing globally."</li>
-<li><strong>Innovation</strong> — đổi mới sáng tạo: "Governments should invest in <em>innovation</em>."</li>
-</ol>
-
-<blockquote>
-<p><strong>💡 Mẹo:</strong> Khi viết Writing Task 2, dùng ít nhất 3-4 từ vựng band 7+ cho mỗi đoạn thân bài. Không cần nhồi nhét quá nhiều — tự nhiên và chính xác quan trọng hơn.</p>
-</blockquote>
     `.trim(),
   },
 ];
-
-/* ═══════════════════════════════════════════
-   MAIN SEED FUNCTION
-   ═══════════════════════════════════════════ */
-
-async function main() {
-  console.log("🌱 Bắt đầu seed database...\n");
-
-  // ── 1. Tạo tài khoản Staff ──
-  const adminPassword = await bcrypt.hash("Admin@123", 10);
-  const marketingPassword = await bcrypt.hash("Marketing@123", 10);
-  const teacherPassword = await bcrypt.hash("Teacher@123", 10);
-  const studentPassword = await bcrypt.hash("Student@123", 10);
-
-  const admin = await prisma.user.upsert({
-    where: { email: "admin@vestauni.vn" },
-    update: {},
-    create: {
-      email: "admin@vestauni.vn",
-      passwordHash: adminPassword,
-      fullName: "Admin VESTA",
-      role: "ADMIN",
-      isActive: true,
-    },
-  });
-  console.log("✅ Admin: admin@vestauni.vn / Admin@123");
-
-  const marketing = await prisma.user.upsert({
-    where: { email: "marketing@vestauni.vn" },
-    update: {},
-    create: {
-      email: "marketing@vestauni.vn",
-      passwordHash: marketingPassword,
-      fullName: "Marketing VESTA",
-      role: "CONTENT_CREATOR",
-      isActive: true,
-    },
-  });
-  console.log("✅ Marketing: marketing@vestauni.vn / Marketing@123");
-
-  await prisma.user.upsert({
-    where: { email: "teacher@vestauni.vn" },
-    update: {},
-    create: {
-      email: "teacher@vestauni.vn",
-      passwordHash: teacherPassword,
-      fullName: "Teacher Hương Ly",
-      role: "TEACHER",
-      isActive: true,
-    },
-  });
-  console.log("✅ Teacher: teacher@vestauni.vn / Teacher@123");
-
-  // ── 2. Tạo tài khoản Student ──
-  const students = [
-    {
-      fullName: "Nguyễn Văn An",
-      studentCode: "VS20250001",
-      phone: "0901000001",
-    },
-    {
-      fullName: "Trần Thị Bình",
-      studentCode: "VS20250002",
-      phone: "0901000002",
-    },
-    {
-      fullName: "Lê Hoàng Cường",
-      studentCode: "VS20250003",
-      phone: "0901000003",
-    },
-  ];
-
-  for (const s of students) {
-    const existing = await prisma.user.findFirst({
-      where: { studentCode: s.studentCode },
-    });
-    if (!existing) {
-      await prisma.user.create({
-        data: {
-          fullName: s.fullName,
-          studentCode: s.studentCode,
-          phone: s.phone,
-          passwordHash: studentPassword,
-          role: "STUDENT",
-          isActive: true,
-        },
-      });
-    }
-    console.log(`✅ Student: ${s.studentCode} / Student@123 (${s.fullName})`);
-  }
-
-  // ── 3. Tạo bài viết blog ──
-  console.log("\n📝 Tạo bài viết blog...");
-
-  for (const post of SAMPLE_POSTS) {
-    const existing = await prisma.post.findFirst({
-      where: { slug: post.slug },
-    });
-
-    if (existing) {
-      await prisma.post.update({
-        where: { id: existing.id },
-        data: {
-          title: post.title,
-          content: post.content,
-          status: "PUBLISHED",
-        },
-      });
-      console.log(`  ✅ Cập nhật: ${post.title}`);
-    } else {
-      await prisma.post.create({
-        data: {
-          title: post.title,
-          slug: post.slug,
-          content: post.content,
-          status: "PUBLISHED",
-          authorId: marketing.id,
-        },
-      });
-      console.log(`  ✅ Tạo mới: ${post.title}`);
-    }
-  }
-
-  // ── Done ──
-  console.log(`
-🎉 Seed hoàn tất!
-───────────────────────────────────────────
-Tài khoản đăng nhập:
-  Admin:     admin@vestauni.vn / Admin@123
-  Marketing: marketing@vestauni.vn / Marketing@123
-  Teacher:   teacher@vestauni.vn / Teacher@123
-  Student:   VS20250001 / Student@123
-             VS20250002 / Student@123
-             VS20250003 / Student@123
-
-Blog: ${SAMPLE_POSTS.length} bài viết IELTS
-───────────────────────────────────────────
-  `);
-}
-
-main()
-  .catch((e) => {
-    console.error("❌ Seed lỗi:", e);
-    process.exit(1);
-  })
-  .finally(async () => {
-    await prisma.$disconnect();
-  });
