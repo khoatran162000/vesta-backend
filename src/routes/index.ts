@@ -1,5 +1,4 @@
-// FILE: src/routes/index.ts — Tat ca routes
-
+// FILE: src/routes/index.ts — Tất cả routes (cập nhật mới)
 import { Router } from "express";
 import authRoutes from "./auth.routes";
 import postRoutes from "./post.routes";
@@ -10,6 +9,11 @@ import questionRoutes from "./question.routes";
 import attemptRoutes from "./attempt.routes";
 import notificationRoutes from "./notification.routes";
 import studentRoutes from "./student.routes";
+import registerRoutes from "./register.routes";
+import classContentRoutes from "./classContent.routes";
+import consultationRoutes from "./consultation.routes";
+import interactiveRoutes from "./interactive.routes";
+import scheduleRoutes from "./schedule.routes";
 
 const router = Router();
 
@@ -22,8 +26,12 @@ router.use("/questions", questionRoutes);
 router.use("/attempts", attemptRoutes);
 router.use("/notifications", notificationRoutes);
 router.use("/student", studentRoutes);
+router.use("/register", registerRoutes);
+router.use("/class", classContentRoutes);
+router.use("/consultation", consultationRoutes);
+router.use("/interactive", interactiveRoutes);
+router.use("/schedule", scheduleRoutes);
 
-// Health check
 router.get("/health", (_req, res) => {
   res.json({ status: "ok", timestamp: new Date().toISOString() });
 });

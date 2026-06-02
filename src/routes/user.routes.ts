@@ -3,6 +3,9 @@
  * PATH: apps/api/src/routes/user.routes.ts
  * MÔ TẢ: Routes quản lý tài khoản — ADMIN + TEACHER
  */
+import multer from "multer";
+import { importStudentsFromCSV } from "../controllers/import.controller";
+const uploadCSV = multer({ dest: "uploads/temp/" }).single("file");
 
 import { Router } from "express";
 import * as user from "../controllers/user.controller";
@@ -24,5 +27,8 @@ router.post("/bulk-create", authorize("ADMIN", "TEACHER"), user.bulkCreateStuden
 // Chỉ ADMIN mới sửa/khoá tài khoản
 router.put("/:id", authorize("ADMIN"), user.updateUser);
 router.patch("/:id/toggle-status", authorize("ADMIN"), user.toggleStatus);
+
+// Admin import học viên từ CSV
+router.post("/import-csv", authenticate, authorize("ADMIN"), uploadCSV, importStudentsFromCSV);
 
 export default router;

@@ -1,32 +1,31 @@
-// FILE: src/routes/student.routes.ts — Routes cho Student Portal
-
+// FILE: src/routes/student.routes.ts — Routes hoàn chỉnh cho Student Portal
+// GHI ĐÈ file hiện tại
 import { Router } from "express";
-import * as student from "../controllers/student.controller";
 import { authenticate } from "../middlewares/auth.middleware";
-import { authorize } from "../middlewares/role.middleware";
+import * as student from "../controllers/student.controller";
 
 const router = Router();
 
-// Tất cả route yêu cầu đăng nhập + role STUDENT
-router.use(authenticate, authorize("STUDENT"));
+// Tất cả endpoints yêu cầu đăng nhập
+router.use(authenticate);
 
-// Dashboard
+// ─── Dashboard ───
 router.get("/dashboard", student.getDashboard);
 
-// Browse exams
+// ─── Exam Browsing ───
 router.get("/categories", student.getCategories);
 router.get("/exams", student.getExams);
 
-// Exam engine
+// ─── Exam Engine ───
 router.post("/exams/:examId/start", student.startExam);
 router.put("/attempts/:attemptId/save", student.saveAnswers);
 router.post("/attempts/:attemptId/submit", student.submitExam);
 
-// History & review
+// ─── History & Review ───
 router.get("/history", student.getHistory);
 router.get("/history/:attemptId", student.getAttemptReview);
 
-// Notifications
+// ─── Notifications ───
 router.get("/notifications", student.getNotifications);
 router.patch("/notifications/read-all", student.markAllRead);
 

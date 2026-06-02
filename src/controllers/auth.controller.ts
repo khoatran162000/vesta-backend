@@ -1,4 +1,5 @@
 // FILE: src/controllers/auth.controller.ts — Login bang email (Staff) HOAC studentCode (Student)
+// CẬP NHẬT: getMe() trả thêm course + regStatus để Student Portal phân biệt paid/unpaid
 
 import { Request, Response } from "express";
 import bcrypt from "bcryptjs";
@@ -10,14 +11,6 @@ import path from "path";
 
 // ═══════════════════════ LOGIN ═══════════════════════
 
-/**
- * POST /api/auth/login
- * Body: { email, password } hoặc { studentCode, password }
- *
- * - Staff (Admin, Teacher, MKT): đăng nhập bằng email
- * - Student: đăng nhập bằng studentCode (VD: VS2025001)
- * - Hệ thống tự nhận diện: nếu gửi studentCode → tìm theo studentCode, nếu gửi email → tìm theo email
- */
 export async function login(req: Request, res: Response) {
   try {
     const { email, studentCode, password } = req.body;
@@ -33,26 +26,19 @@ export async function login(req: Request, res: Response) {
     let user;
 
     if (studentCode) {
-      // Login bằng mã học viên
       user = await prisma.user.findUnique({ where: { studentCode } });
       if (!user) return api.error(res, "Mã học viên không tồn tại", 401);
     } else {
-      // Login bằng email — tìm chính xác
       user = await prisma.user.findUnique({ where: { email } });
       if (!user) return api.error(res, "Email không tồn tại", 401);
     }
 
-    // Kiểm tra tài khoản bị khoá
     if (!user.isActive) {
       return api.error(res, "Tài khoản đã bị khoá. Liên hệ quản trị viên.", 403);
     }
 
-    // Kiểm tra mật khẩu
     const isValid = await bcrypt.compare(password, user.passwordHash);
     if (!isValid) return api.error(res, "Mật khẩu không đúng", 401);
-
-    // Kiểm tra quyền truy cập CMS/Admin (chỉ Staff mới vào Admin Portal)
-    // Student vẫn login được nhưng sẽ vào Student Portal
 
     const tokens = generateTokenPair({ userId: user.id, role: user.role });
 
@@ -65,6 +51,8 @@ export async function login(req: Request, res: Response) {
         fullName: user.fullName,
         role: user.role,
         avatarUrl: user.avatarUrl,
+        course: user.course,           // ← THÊM
+        regStatus: user.regStatus,     // ← THÊM
       },
     });
   } catch (err) {
@@ -103,6 +91,12 @@ export async function getMe(req: Request, res: Response) {
         id: true, email: true, studentCode: true, fullName: true,
         phone: true, address: true, role: true, avatarUrl: true,
         isActive: true, createdAt: true,
+        // ─── THÊM FIELDS HỌC VIÊN ───
+        course: true,
+        regStatus: true,
+        studyMode: true,
+        cccd: true,
+        startDate: true,
       },
     });
     if (!user) return api.error(res, "Không tìm thấy tài khoản", 404);

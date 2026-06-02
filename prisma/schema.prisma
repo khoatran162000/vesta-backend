@@ -1,4 +1,5 @@
-// FILE: prisma/schema.prisma — Student login bang studentCode, them phone/address
+// FILE: prisma/schema.prisma — SCHEMA HOÀN CHỈNH
+// Ghi đè trực tiếp file hiện tại
 
 generator client {
   provider = "prisma-client-js"
@@ -9,6 +10,7 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// ═══════════════════════ ENUMS ═══════════════════════
 enum Role {
   ADMIN
   TEACHER
@@ -38,23 +40,42 @@ enum NotificationType {
   TEACHER_WARNING
 }
 
+// ═══════════════════════ USER ═══════════════════════
 model User {
   id           String   @id @default(uuid())
-  email        String?  @unique       // Bat buoc voi Staff, tuy chon voi Student
-  studentCode  String?  @unique       // Ma hoc vien (VD: VS2025001) — chi Student dung
+  email        String?  @unique
+  studentCode  String?  @unique
   passwordHash String
   fullName     String
   phone        String?
   address      String?
+  cccd         String?
+  course       String?
+  studyMode    String?
+  notes        String?  @db.Text
+  regStatus    String?
+  careStaff    String?
+  midCare      String?  @db.Text
+  endCare      String?  @db.Text
+  testScore    String?
+  startDate    DateTime?
   role         Role
   avatarUrl    String?
   isActive     Boolean  @default(true)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  posts         Post[]
-  examAttempts  ExamAttempt[]
-  notifications Notification[]
+  // Relations
+  posts               Post[]
+  examAttempts        ExamAttempt[]
+  notifications       Notification[]
+  diariesCreated      ClassDiary[]          @relation("DiaryCreator")
+  materialsCreated    Material[]            @relation("MaterialCreator")
+  feedbacksReceived   Feedback[]            @relation("StudentFeedback")
+  feedbacksReviewed   Feedback[]            @relation("FeedbackReviewer")
+  exercisesCreated    InteractiveExercise[] @relation("ExerciseCreator")
+  interactiveAttempts InteractiveAttempt[]  @relation("InteractiveAttemptStudent")
+  schedulesCreated    ClassSchedule[]       @relation("ScheduleCreator")
 
   @@index([role])
   @@index([isActive])
@@ -62,6 +83,7 @@ model User {
   @@map("users")
 }
 
+// ═══════════════════════ POST (Blog) ═══════════════════════
 model Post {
   id           String   @id @default(uuid())
   authorId     String
@@ -73,15 +95,21 @@ model Post {
   thumbnailUrl String?
   tags         Json     @default("[]")
   status       String   @default("DRAFT")
+  visibility   String   @default("PUBLIC")   // PUBLIC | STUDENT | TEACHER | CLASS
+  visibleTo    String?  @db.Text             // "5+,6+,7+" nếu CLASS
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
+
+  exercises    InteractiveExercise[]
 
   @@index([authorId])
   @@index([status])
   @@index([slug])
+  @@index([visibility])
   @@map("posts")
 }
 
+// ═══════════════════════ CATEGORY ═══════════════════════
 model Category {
   id          String     @id @default(uuid())
   name        String
@@ -97,6 +125,7 @@ model Category {
   @@map("categories")
 }
 
+// ═══════════════════════ EXAM ═══════════════════════
 model Exam {
   id          String     @id @default(uuid())
   categoryId  String
@@ -117,6 +146,7 @@ model Exam {
   @@map("exams")
 }
 
+// ═══════════════════════ QUESTION ═══════════════════════
 model Question {
   id            String       @id @default(uuid())
   examId        String
@@ -137,6 +167,7 @@ model Question {
   @@map("questions")
 }
 
+// ═══════════════════════ EXAM ATTEMPT ═══════════════════════
 model ExamAttempt {
   id           String        @id @default(uuid())
   studentId    String
@@ -159,6 +190,7 @@ model ExamAttempt {
   @@map("exam_attempts")
 }
 
+// ═══════════════════════ NOTIFICATION ═══════════════════════
 model Notification {
   id        String           @id @default(uuid())
   userId    String
@@ -172,4 +204,132 @@ model Notification {
   @@index([userId])
   @@index([userId, isRead])
   @@map("notifications")
+}
+
+// ═══════════════════════ CLASS DIARY ═══════════════════════
+model ClassDiary {
+  id          String   @id @default(uuid())
+  course      String
+  session     Int
+  date        DateTime
+  topic       String   @db.Text
+  homework    String?  @db.Text
+  duration    String?
+  teacherNote String?  @db.Text
+  createdBy   String
+  creator     User     @relation("DiaryCreator", fields: [createdBy], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([course])
+  @@index([date])
+  @@map("class_diaries")
+}
+
+// ═══════════════════════ MATERIAL ═══════════════════════
+model Material {
+  id          String   @id @default(uuid())
+  course      String
+  title       String
+  description String?  @db.Text
+  fileUrl     String
+  fileType    String?
+  orderIndex  Int      @default(0)
+  isPublished Boolean  @default(true)
+  createdBy   String
+  creator     User     @relation("MaterialCreator", fields: [createdBy], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([course])
+  @@map("materials")
+}
+
+// ═══════════════════════ FEEDBACK ═══════════════════════
+model Feedback {
+  id             String    @id @default(uuid())
+  studentId      String
+  student        User      @relation("StudentFeedback", fields: [studentId], references: [id])
+  title          String
+  studentWork    String?   @db.LongText
+  studentFileUrl String?
+  teacherComment String?   @db.Text
+  score          Float?
+  maxScore       Float?    @default(10)
+  status         String    @default("PENDING")
+  reviewedBy     String?
+  reviewer       User?     @relation("FeedbackReviewer", fields: [reviewedBy], references: [id])
+  reviewedAt     DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@index([studentId])
+  @@index([status])
+  @@map("feedbacks")
+}
+
+// ═══════════════════════ INTERACTIVE EXERCISE ═══════════════════════
+model InteractiveExercise {
+  id          String   @id @default(uuid())
+  postId      String?
+  post        Post?    @relation(fields: [postId], references: [id], onDelete: SetNull)
+  title       String
+  description String?  @db.Text
+  type        String
+  questions   Json
+  visibility  String   @default("PUBLIC")
+  visibleTo   String?  @db.Text
+  isPublished Boolean  @default(false)
+  orderIndex  Int      @default(0)
+  createdBy   String
+  creator     User     @relation("ExerciseCreator", fields: [createdBy], references: [id])
+  attempts    InteractiveAttempt[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([postId])
+  @@index([visibility])
+  @@map("interactive_exercises")
+}
+
+// ═══════════════════════ INTERACTIVE ATTEMPT ═══════════════════════
+model InteractiveAttempt {
+  id          String   @id @default(uuid())
+  exerciseId  String
+  exercise    InteractiveExercise @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+  studentId   String
+  student     User     @relation("InteractiveAttemptStudent", fields: [studentId], references: [id])
+  answers     Json
+  score       Float?
+  totalScore  Float?
+  createdAt   DateTime @default(now())
+
+  @@index([exerciseId])
+  @@index([studentId])
+  @@map("interactive_attempts")
+}
+
+// ═══════════════════════ CLASS SCHEDULE ═══════════════════════
+model ClassSchedule {
+  id              String   @id @default(uuid())
+  course          String
+  className       String
+  startDate       DateTime
+  endDate         DateTime
+  schedule        String
+  room            String?
+  teacher         String?
+  maxStudents     Int      @default(15)
+  currentStudents Int      @default(0)
+  status          String   @default("UPCOMING")
+  notes           String?  @db.Text
+  createdBy       String
+  creator         User     @relation("ScheduleCreator", fields: [createdBy], references: [id])
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([course])
+  @@index([startDate])
+  @@index([status])
+  @@map("class_schedules")
 }
