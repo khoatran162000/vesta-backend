@@ -76,6 +76,8 @@ model User {
   exercisesCreated    InteractiveExercise[] @relation("ExerciseCreator")
   interactiveAttempts InteractiveAttempt[]  @relation("InteractiveAttemptStudent")
   schedulesCreated    ClassSchedule[]       @relation("ScheduleCreator")
+  reportsReceived     WeeklyReport[]        @relation("StudentReport")
+  reportsCreated      WeeklyReport[]        @relation("ReportCreator")
 
   @@index([role])
   @@index([isActive])
@@ -277,6 +279,9 @@ model InteractiveExercise {
   description String?  @db.Text
   type        String
   questions   Json
+  content     String?  @db.LongText
+  gaps        Json?
+  distractors Json?
   visibility  String   @default("PUBLIC")
   visibleTo   String?  @db.Text
   isPublished Boolean  @default(false)
@@ -286,7 +291,6 @@ model InteractiveExercise {
   attempts    InteractiveAttempt[]
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-
   @@index([postId])
   @@index([visibility])
   @@map("interactive_exercises")
@@ -297,13 +301,13 @@ model InteractiveAttempt {
   id          String   @id @default(uuid())
   exerciseId  String
   exercise    InteractiveExercise @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
-  studentId   String
-  student     User     @relation("InteractiveAttemptStudent", fields: [studentId], references: [id])
+  studentId   String?
+  student     User?    @relation("InteractiveAttemptStudent", fields: [studentId], references: [id])
   answers     Json
   score       Float?
   totalScore  Float?
+  detail      Json?
   createdAt   DateTime @default(now())
-
   @@index([exerciseId])
   @@index([studentId])
   @@map("interactive_attempts")
@@ -332,4 +336,28 @@ model ClassSchedule {
   @@index([startDate])
   @@index([status])
   @@map("class_schedules")
+}
+
+
+model WeeklyReport {
+  id             String    @id @default(uuid())
+  studentId      String
+  student        User      @relation("StudentReport", fields: [studentId], references: [id], onDelete: Cascade)
+  course         String?                          // "7+"
+  learnclickUser String?                          // username LearnClick
+  padletAccount  String?
+  periodTo       DateTime?                         // kỳ báo cáo đến ngày
+  dataFrom       DateTime?                         // khoảng dữ liệu LearnClick: từ
+  dataTo         DateTime?                         // đến
+  grid           Json                              // toàn bộ bảng điểm (cấu trúc bên dưới)
+  teacherNote    Json?                             // { strengths, reminders, homework, attitude }
+  status         String    @default("DRAFT")       // DRAFT | PUBLISHED
+  createdBy      String
+  creator        User      @relation("ReportCreator", fields: [createdBy], references: [id])
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@index([studentId])
+  @@index([status])
+  @@map("weekly_reports")
 }
