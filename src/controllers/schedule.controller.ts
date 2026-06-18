@@ -29,7 +29,7 @@ export const listSchedules = async (req: Request, res: Response) => {
 // ─── Detail ───
 export const getSchedule = async (req: Request, res: Response) => {
   try {
-    const s = await prisma.classSchedule.findUnique({ where: { id: req.params.id } });
+    const s = await prisma.classSchedule.findUnique({ where: { id: String(req.params.id) } });
     if (!s) return res.status(404).json({ success: false, message: "Không tìm thấy" });
     return res.json({ success: true, data: s });
   } catch {
@@ -40,7 +40,7 @@ export const getSchedule = async (req: Request, res: Response) => {
 // ─── Create (Admin/Teacher) ───
 export const createSchedule = async (req: Request, res: Response) => {
   try {
-    const userId = (req as any).user?.id;
+    const userId = (req as any).user?.userId || "";
     const { course, className, startDate, endDate, schedule, room, teacher, maxStudents, status, notes } = req.body;
 
     if (!course || !className || !startDate || !endDate || !schedule) {
@@ -71,7 +71,7 @@ export const updateSchedule = async (req: Request, res: Response) => {
     const data: any = { ...req.body };
     if (data.startDate) data.startDate = new Date(data.startDate);
     if (data.endDate) data.endDate = new Date(data.endDate);
-    const s = await prisma.classSchedule.update({ where: { id: req.params.id }, data });
+    const s = await prisma.classSchedule.update({ where: { id: String(req.params.id) }, data });
     return res.json({ success: true, data: s });
   } catch {
     return res.status(500).json({ success: false, message: "Lỗi cập nhật" });
@@ -81,7 +81,7 @@ export const updateSchedule = async (req: Request, res: Response) => {
 // ─── Delete ───
 export const deleteSchedule = async (req: Request, res: Response) => {
   try {
-    await prisma.classSchedule.delete({ where: { id: req.params.id } });
+    await prisma.classSchedule.delete({ where: { id: String(req.params.id) } });
     return res.json({ success: true, message: "Đã xoá" });
   } catch {
     return res.status(500).json({ success: false, message: "Lỗi xoá" });

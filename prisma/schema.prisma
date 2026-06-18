@@ -78,6 +78,8 @@ model User {
   schedulesCreated    ClassSchedule[]       @relation("ScheduleCreator")
   reportsReceived     WeeklyReport[]        @relation("StudentReport")
   reportsCreated      WeeklyReport[]        @relation("ReportCreator")
+  finalReportsReceived FinalReport[]        @relation("StudentFinalReport")
+  finalReportsCreated  FinalReport[]        @relation("FinalReportCreator")
 
   @@index([role])
   @@index([isActive])
@@ -360,4 +362,26 @@ model WeeklyReport {
   @@index([studentId])
   @@index([status])
   @@map("weekly_reports")
+}
+
+
+model FinalReport {
+  id             String    @id @default(uuid())
+  studentId      String
+  student        User      @relation("StudentFinalReport", fields: [studentId], references: [id], onDelete: Cascade)
+  course         String?
+  learnclickUser String?
+  skillGrid      Json                              // bảng tích lũy kĩ năng (units × cột kỹ năng)
+  review         Json?                             // { quickSummary, reading, listening, writingT1, writingT2, speaking, notebook }
+  prediction     Json?                             // { listening:{band,sub}, reading, writing, speaking, overall, note }
+  orientation    Json?                             // { advice, classInfo }
+  status         String    @default("DRAFT")        // DRAFT | PUBLISHED
+  createdBy      String
+  creator        User      @relation("FinalReportCreator", fields: [createdBy], references: [id])
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@index([studentId])
+  @@index([status])
+  @@map("final_reports")
 }

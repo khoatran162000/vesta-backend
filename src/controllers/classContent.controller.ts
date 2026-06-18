@@ -7,8 +7,8 @@ import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
 
 // Helper lấy userId từ JWT payload (payload = { userId, role })
-function uid(req: Request): string | undefined {
-  return (req as any).user?.userId;
+function uid(req: Request): string {
+  return (req as any).user?.userId || "";
 }
 
 // ═══════════════════════════════════════════
@@ -47,7 +47,7 @@ export const createDiary = async (req: Request, res: Response) => {
 
 export const updateDiary = async (req: Request, res: Response) => {
   try {
-    const { id } = req.params;
+    const id = String(req.params.id);
     const { creator, createdBy, id: _id, createdAt, updatedAt, ...data } = req.body;
     if (data.session) data.session = Number(data.session);
     if (data.date) data.date = new Date(data.date);
@@ -58,7 +58,7 @@ export const updateDiary = async (req: Request, res: Response) => {
 
 export const deleteDiary = async (req: Request, res: Response) => {
   try {
-    await prisma.classDiary.delete({ where: { id: req.params.id } });
+    await prisma.classDiary.delete({ where: { id: String(req.params.id) } });
     return res.json({ success: true, message: "Đã xoá" });
   } catch { return res.status(500).json({ success: false, message: "Lỗi xoá" }); }
 };
@@ -97,14 +97,14 @@ export const updateMaterial = async (req: Request, res: Response) => {
   try {
     const { creator, createdBy, id: _id, createdAt, updatedAt, ...data } = req.body;
     if (data.orderIndex !== undefined) data.orderIndex = Number(data.orderIndex);
-    const mat = await prisma.material.update({ where: { id: req.params.id }, data });
+    const mat = await prisma.material.update({ where: { id: String(req.params.id) }, data });
     return res.json({ success: true, data: mat });
   } catch { return res.status(500).json({ success: false, message: "Lỗi cập nhật" }); }
 };
 
 export const deleteMaterial = async (req: Request, res: Response) => {
   try {
-    await prisma.material.delete({ where: { id: req.params.id } });
+    await prisma.material.delete({ where: { id: String(req.params.id) } });
     return res.json({ success: true, message: "Đã xoá" });
   } catch { return res.status(500).json({ success: false, message: "Lỗi xoá" }); }
 };
@@ -156,7 +156,7 @@ export const listFeedback = async (req: Request, res: Response) => {
 export const reviewFeedback = async (req: Request, res: Response) => {
   try {
     const reviewerId = uid(req);
-    const { id } = req.params;
+    const id = String(req.params.id);
     const { teacherComment, score } = req.body;
     const fb = await prisma.feedback.update({
       where: { id },
@@ -188,7 +188,7 @@ export const reviewFeedback = async (req: Request, res: Response) => {
 // ─────────────────────────────────────────────
 export const getStudentFeedback = async (req: Request, res: Response) => {
   try {
-    const { studentId } = req.params;
+    const studentId = String(req.params.studentId);
 
     const [student, feedbacks] = await Promise.all([
       prisma.user.findUnique({
@@ -279,7 +279,7 @@ export const createFeedbackForStudent = async (req: Request, res: Response) => {
 // ─────────────────────────────────────────────
 export const deleteFeedback = async (req: Request, res: Response) => {
   try {
-    const { id } = req.params;
+    const id = String(req.params.id);
     const existing = await prisma.feedback.findUnique({ where: { id } });
     if (!existing) {
       return res.status(404).json({ success: false, message: "Không tìm thấy nhận xét" });
