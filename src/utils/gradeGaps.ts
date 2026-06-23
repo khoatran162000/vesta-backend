@@ -114,10 +114,15 @@ export function stripGapAnswers(gaps: any): any {
   if (!gaps || typeof gaps !== "object") return gaps;
   const out: Record<string, any> = {};
   for (const [id, g] of Object.entries<any>(gaps)) {
-    out[id] = {
-      type: g.type || "TEXT",
-      ...(Array.isArray(g.options) ? { options: g.options } : {}),
-    };
+    if (g.type === "DRAG") {
+      // DRAG: giữ answers để client dựng "ngân hàng từ" để kéo (giống LearnClick).
+      // Cái giấu là "từ nào đúng ô nào", không phải tập từ hiện ra.
+      out[id] = { type: "DRAG", answers: Array.isArray(g.answers) ? g.answers : [] };
+    } else if (g.type === "DROPDOWN") {
+      out[id] = { type: "DROPDOWN", ...(Array.isArray(g.options) ? { options: g.options } : {}) };
+    } else {
+      out[id] = { type: g.type || "TEXT" };
+    }
   }
   return out;
 }

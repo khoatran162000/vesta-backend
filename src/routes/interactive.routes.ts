@@ -17,6 +17,7 @@ router.post("/:id/submit", authenticate, ix.submitExercise);
 router.get("/my/attempts", authenticate, ix.getMyAttempts);
 
 // Admin/Teacher: CRUD
+router.get("/:id/attempts", authenticate, authorize(...staff), ix.getExerciseAttempts);
 router.post("/", authenticate, authorize(...staff), ix.createExercise);
 router.put("/:id", authenticate, authorize(...staff), ix.updateExercise);
 router.delete("/:id", authenticate, authorize(...staff), ix.deleteExercise);
