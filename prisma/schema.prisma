@@ -385,3 +385,20 @@ model FinalReport {
   @@index([status])
   @@map("final_reports")
 }
+
+// ═══════════════════════ TEACHER (Landing) ═══════════════════════
+model Teacher {
+  id          String   @id @default(uuid())
+  name        String                       // "Ms. Ly Le"
+  ma          String?                       // hậu tố học vị: "(M.A.)"
+  subtitle    String   @db.Text
+  photoUrl    String?                       // /uploads/blog/<file>, null = placeholder
+  badges      Json                          // [{ num, label }]
+  credentials Json                          // [{ icon, text }]
+  orderIndex  Int      @default(0)
+  isPublished Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  @@index([isPublished])
+  @@map("teachers")
+}
