@@ -17,6 +17,7 @@ import scheduleRoutes from "./schedule.routes";
 import reportRoutes from "./report.routes";
 import finalReportRoutes from "./finalReport.routes";
 import teacherRoutes from "./teacher.routes";
+import courseRoutes from "./course.routes";
 
 const router = Router();
 
@@ -37,6 +38,7 @@ router.use("/schedule", scheduleRoutes);
 router.use("/reports", reportRoutes);
 router.use("/final-reports", finalReportRoutes);
 router.use("/teachers", teacherRoutes);
+router.use("/courses", courseRoutes);
 router.get("/health", (_req, res) => {
   res.json({ status: "ok", timestamp: new Date().toISOString() });
 });

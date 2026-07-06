@@ -402,3 +402,30 @@ model Teacher {
   @@index([isPublished])
   @@map("teachers")
 }
+
+// ═══════════════════════ COURSE (Landing) ═══════════════════════
+model Course {
+  id            String   @id @default(uuid())
+  cardType      String   @default("FULL")   // FULL | HALF | SUPPORT
+  title         String
+  badge         String?
+  isSpecial     Boolean  @default(false)     // khoá nổi bật (header đỏ đô)
+  badgeOutline  Boolean  @default(false)     // badge viền (không nền vàng)
+  features      Json                          // [{ icon, text }]
+  commitment    String?  @db.Text
+  scheduleLabel String?                       // "THỜI LƯỢNG" / "LỊCH HỌC" / "HỌC PHÍ"
+  schedule      String?  @db.Text
+  price         String?
+  onlinePrice   String?
+  cta           String?                       // dòng call-to-action (khoá 1-1)
+  specialPrice  String?                       // card SUPPORT
+  originalPrice String?                       // card SUPPORT
+  orderIndex    Int      @default(0)
+  isPublished   Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  @@index([cardType])
+  @@index([isPublished])
+  @@map("courses")
+}
+
