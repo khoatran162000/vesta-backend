@@ -19,6 +19,7 @@ import finalReportRoutes from "./finalReport.routes";
 import teacherRoutes from "./teacher.routes";
 import courseRoutes from "./course.routes";
 import bookRoutes from "./book.routes";
+import siteContentRoutes from "./siteContent.routes";
 
 const router = Router();
 
@@ -41,6 +42,7 @@ router.use("/final-reports", finalReportRoutes);
 router.use("/teachers", teacherRoutes);
 router.use("/courses", courseRoutes);
 router.use("/books", bookRoutes);
+router.use("/site-content", siteContentRoutes);
 
 router.get("/health", (_req, res) => {
   res.json({ status: "ok", timestamp: new Date().toISOString() });

@@ -443,3 +443,13 @@ model Book {
   @@map("books")
 }
 
+// ═══════════════════════ SITE CONTENT (khối tĩnh landing) ═══════════════════════
+model SiteContent {
+  id        String   @id @default(uuid())
+  key       String   @unique          // hero | philosophy | tuition | books_spark
+  label     String                     // tên hiển thị trong admin
+  data      Json                       // cấu trúc tuỳ khối
+  updatedAt DateTime @updatedAt
+  @@map("site_contents")
+}
+
