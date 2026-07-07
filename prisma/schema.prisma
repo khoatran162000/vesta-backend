@@ -1,15 +1,12 @@
 // FILE: prisma/schema.prisma — SCHEMA HOÀN CHỈNH
 // Ghi đè trực tiếp file hiện tại
-
 generator client {
   provider = "prisma-client-js"
 }
-
 datasource db {
   provider = "mysql"
   url      = env("DATABASE_URL")
 }
-
 // ═══════════════════════ ENUMS ═══════════════════════
 enum Role {
   ADMIN
@@ -17,29 +14,24 @@ enum Role {
   CONTENT_CREATOR
   STUDENT
 }
-
 enum ExamStatus {
   DRAFT
   PUBLISHED
 }
-
 enum AttemptStatus {
   IN_PROGRESS
   SUBMITTED
 }
-
 enum QuestionType {
   MULTIPLE_CHOICE
   FILL_IN_BLANK
   MATCHING
   ESSAY
 }
-
 enum NotificationType {
   SYSTEM_AUTO
   TEACHER_WARNING
 }
-
 // ═══════════════════════ USER ═══════════════════════
 model User {
   id           String   @id @default(uuid())
@@ -64,7 +56,6 @@ model User {
   isActive     Boolean  @default(true)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
-
   // Relations
   posts               Post[]
   examAttempts        ExamAttempt[]
@@ -80,13 +71,11 @@ model User {
   reportsCreated      WeeklyReport[]        @relation("ReportCreator")
   finalReportsReceived FinalReport[]        @relation("StudentFinalReport")
   finalReportsCreated  FinalReport[]        @relation("FinalReportCreator")
-
   @@index([role])
   @@index([isActive])
   @@index([studentCode])
   @@map("users")
 }
-
 // ═══════════════════════ POST (Blog) ═══════════════════════
 model Post {
   id           String   @id @default(uuid())
@@ -99,20 +88,17 @@ model Post {
   thumbnailUrl String?
   tags         Json     @default("[]")
   status       String   @default("DRAFT")
-  visibility   String   @default("PUBLIC")   // PUBLIC | STUDENT | TEACHER | CLASS
-  visibleTo    String?  @db.Text             // "5+,6+,7+" nếu CLASS
+  visibility   String   @default("PUBLIC")
+  visibleTo    String?  @db.Text
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
-
   exercises    InteractiveExercise[]
-
   @@index([authorId])
   @@index([status])
   @@index([slug])
   @@index([visibility])
   @@map("posts")
 }
-
 // ═══════════════════════ CATEGORY ═══════════════════════
 model Category {
   id          String     @id @default(uuid())
@@ -124,11 +110,9 @@ model Category {
   exams       Exam[]
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
-
   @@index([parentId])
   @@map("categories")
 }
-
 // ═══════════════════════ EXAM ═══════════════════════
 model Exam {
   id          String     @id @default(uuid())
@@ -141,15 +125,12 @@ model Exam {
   status      ExamStatus @default(DRAFT)
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
-
   questions    Question[]
   examAttempts ExamAttempt[]
-
   @@index([categoryId])
   @@index([status])
   @@map("exams")
 }
-
 // ═══════════════════════ QUESTION ═══════════════════════
 model Question {
   id            String       @id @default(uuid())
@@ -165,12 +146,10 @@ model Question {
   score         Float        @default(1)
   createdAt     DateTime     @default(now())
   updatedAt     DateTime     @updatedAt
-
   @@index([examId])
   @@index([type])
   @@map("questions")
 }
-
 // ═══════════════════════ EXAM ATTEMPT ═══════════════════════
 model ExamAttempt {
   id           String        @id @default(uuid())
@@ -186,14 +165,12 @@ model ExamAttempt {
   score        Float?
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
-
   @@index([studentId])
   @@index([examId])
   @@index([status])
   @@index([studentId, examId])
   @@map("exam_attempts")
 }
-
 // ═══════════════════════ NOTIFICATION ═══════════════════════
 model Notification {
   id        String           @id @default(uuid())
@@ -204,12 +181,10 @@ model Notification {
   isRead    Boolean          @default(false)
   type      NotificationType
   createdAt DateTime         @default(now())
-
   @@index([userId])
   @@index([userId, isRead])
   @@map("notifications")
 }
-
 // ═══════════════════════ CLASS DIARY ═══════════════════════
 model ClassDiary {
   id          String   @id @default(uuid())
@@ -224,12 +199,10 @@ model ClassDiary {
   creator     User     @relation("DiaryCreator", fields: [createdBy], references: [id])
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-
   @@index([course])
   @@index([date])
   @@map("class_diaries")
 }
-
 // ═══════════════════════ MATERIAL ═══════════════════════
 model Material {
   id          String   @id @default(uuid())
@@ -244,11 +217,9 @@ model Material {
   creator     User     @relation("MaterialCreator", fields: [createdBy], references: [id])
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-
   @@index([course])
   @@map("materials")
 }
-
 // ═══════════════════════ FEEDBACK ═══════════════════════
 model Feedback {
   id             String    @id @default(uuid())
@@ -266,12 +237,10 @@ model Feedback {
   reviewedAt     DateTime?
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
-
   @@index([studentId])
   @@index([status])
   @@map("feedbacks")
 }
-
 // ═══════════════════════ INTERACTIVE EXERCISE ═══════════════════════
 model InteractiveExercise {
   id          String   @id @default(uuid())
@@ -297,7 +266,6 @@ model InteractiveExercise {
   @@index([visibility])
   @@map("interactive_exercises")
 }
-
 // ═══════════════════════ INTERACTIVE ATTEMPT ═══════════════════════
 model InteractiveAttempt {
   id          String   @id @default(uuid())
@@ -314,7 +282,6 @@ model InteractiveAttempt {
   @@index([studentId])
   @@map("interactive_attempts")
 }
-
 // ═══════════════════════ CLASS SCHEDULE ═══════════════════════
 model ClassSchedule {
   id              String   @id @default(uuid())
@@ -333,68 +300,64 @@ model ClassSchedule {
   creator         User     @relation("ScheduleCreator", fields: [createdBy], references: [id])
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
-
   @@index([course])
   @@index([startDate])
   @@index([status])
   @@map("class_schedules")
 }
-
-
+// ═══════════════════════ WEEKLY REPORT (định kỳ) ═══════════════════════
 model WeeklyReport {
   id             String    @id @default(uuid())
   studentId      String
   student        User      @relation("StudentReport", fields: [studentId], references: [id], onDelete: Cascade)
-  course         String?                          // "7+"
-  learnclickUser String?                          // username LearnClick
+  course         String?
+  learnclickUser String?
   padletAccount  String?
-  periodTo       DateTime?                         // kỳ báo cáo đến ngày
-  dataFrom       DateTime?                         // khoảng dữ liệu LearnClick: từ
-  dataTo         DateTime?                         // đến
-  grid           Json                              // toàn bộ bảng điểm (cấu trúc bên dưới)
-  teacherNote    Json?                             // { strengths, reminders, homework, attitude }
-  status         String    @default("DRAFT")       // DRAFT | PUBLISHED
+  periodTo       DateTime?
+  dataFrom       DateTime?
+  dataTo         DateTime?
+  grid           Json
+  teacherNote    Json?
+  status         String    @default("DRAFT")
   createdBy      String
   creator        User      @relation("ReportCreator", fields: [createdBy], references: [id])
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
-
   @@index([studentId])
   @@index([status])
   @@map("weekly_reports")
 }
-
-
+// ═══════════════════════ FINAL REPORT (cuối khóa) ═══════════════════════
 model FinalReport {
   id             String    @id @default(uuid())
   studentId      String
   student        User      @relation("StudentFinalReport", fields: [studentId], references: [id], onDelete: Cascade)
   course         String?
   learnclickUser String?
-  skillGrid      Json                              // bảng tích lũy kĩ năng (units × cột kỹ năng)
-  review         Json?                             // { quickSummary, reading, listening, writingT1, writingT2, speaking, notebook }
-  prediction     Json?                             // { listening:{band,sub}, reading, writing, speaking, overall, note }
-  orientation    Json?                             // { advice, classInfo }
-  status         String    @default("DRAFT")        // DRAFT | PUBLISHED
+  skillGrid      Json?                              // bảng tích lũy kĩ năng (null nếu report dạng HTML)
+  review         Json?
+  prediction     Json?
+  orientation    Json?
+  html           String?   @db.LongText             // NEW: report HTML/CSS dán trực tiếp (thay Netlify)
+  shareToken     String?   @unique                  // NEW: token link chia sẻ công khai cho phụ huynh
+  status         String    @default("DRAFT")
   createdBy      String
   creator        User      @relation("FinalReportCreator", fields: [createdBy], references: [id])
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
-
   @@index([studentId])
   @@index([status])
   @@map("final_reports")
 }
-
 // ═══════════════════════ TEACHER (Landing) ═══════════════════════
 model Teacher {
   id          String   @id @default(uuid())
-  name        String                       // "Ms. Ly Le"
-  ma          String?                       // hậu tố học vị: "(M.A.)"
+  name        String
+  ma          String?
   subtitle    String   @db.Text
-  photoUrl    String?                       // /uploads/blog/<file>, null = placeholder
-  badges      Json                          // [{ num, label }]
-  credentials Json                          // [{ icon, text }]
+  photoUrl    String?
+  badges      Json
+  credentials Json
   orderIndex  Int      @default(0)
   isPublished Boolean  @default(true)
   createdAt   DateTime @default(now())
@@ -402,24 +365,23 @@ model Teacher {
   @@index([isPublished])
   @@map("teachers")
 }
-
 // ═══════════════════════ COURSE (Landing) ═══════════════════════
 model Course {
   id            String   @id @default(uuid())
-  cardType      String   @default("FULL")   // FULL | HALF | SUPPORT
+  cardType      String   @default("FULL")
   title         String
   badge         String?
-  isSpecial     Boolean  @default(false)     // khoá nổi bật (header đỏ đô)
-  badgeOutline  Boolean  @default(false)     // badge viền (không nền vàng)
-  features      Json                          // [{ icon, text }]
+  isSpecial     Boolean  @default(false)
+  badgeOutline  Boolean  @default(false)
+  features      Json
   commitment    String?  @db.Text
-  scheduleLabel String?                       // "THỜI LƯỢNG" / "LỊCH HỌC" / "HỌC PHÍ"
+  scheduleLabel String?
   schedule      String?  @db.Text
   price         String?
   onlinePrice   String?
-  cta           String?                       // dòng call-to-action (khoá 1-1)
-  specialPrice  String?                       // card SUPPORT
-  originalPrice String?                       // card SUPPORT
+  cta           String?
+  specialPrice  String?
+  originalPrice String?
   orderIndex    Int      @default(0)
   isPublished   Boolean  @default(true)
   createdAt     DateTime @default(now())
@@ -428,7 +390,6 @@ model Course {
   @@index([isPublished])
   @@map("courses")
 }
-
 // ═══════════════════════ BOOK (Landing) ═══════════════════════
 model Book {
   id          String   @id @default(uuid())
@@ -442,14 +403,12 @@ model Book {
   @@index([isPublished])
   @@map("books")
 }
-
 // ═══════════════════════ SITE CONTENT (khối tĩnh landing) ═══════════════════════
 model SiteContent {
   id        String   @id @default(uuid())
-  key       String   @unique          // hero | philosophy | tuition | books_spark
-  label     String                     // tên hiển thị trong admin
-  data      Json                       // cấu trúc tuỳ khối
+  key       String   @unique
+  label     String
+  data      Json
   updatedAt DateTime @updatedAt
   @@map("site_contents")
 }
-
