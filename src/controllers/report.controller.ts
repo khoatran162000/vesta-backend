@@ -54,15 +54,18 @@ export const getShareReport = async (req: Request, res: Response) => {
 // ─── List (staff) ───
 export const listReports = async (req: Request, res: Response) => {
   try {
-    const { studentId } = req.query;
+    const { studentId, classId, course } = req.query;
     const where: any = {};
     if (studentId) where.studentId = String(studentId);
+    if (classId) where.classId = String(classId);
+    if (course) where.course = String(course);
     const data = await prisma.weeklyReport.findMany({
       where,
       orderBy: { createdAt: "desc" },
       include: {
         student: { select: { id: true, fullName: true, studentCode: true, course: true } },
         creator: { select: { fullName: true } },
+        class: { select: { id: true, name: true } },
       },
     });
     return res.json({ success: true, data });
@@ -119,7 +122,7 @@ export const createReport = async (req: Request, res: Response) => {
     const userId = uid(req);
     const {
       studentId, course, learnclickUser, padletAccount,
-      periodTo, dataFrom, dataTo, grid, teacherNote, html, status,
+      periodTo, dataFrom, dataTo, grid, teacherNote, html, classId, status,
     } = req.body;
     if (!studentId) return res.status(400).json({ success: false, message: "Thiếu học sinh" });
     const hasHtml = typeof html === "string" && html.trim().length > 0;
@@ -129,6 +132,7 @@ export const createReport = async (req: Request, res: Response) => {
     const report = await prisma.weeklyReport.create({
       data: {
         studentId,
+        classId: classId || null,
         course: course ?? null,
         learnclickUser: learnclickUser ?? null,
         padletAccount: padletAccount ?? null,
@@ -155,10 +159,11 @@ export const updateReport = async (req: Request, res: Response) => {
   try {
     const id = String(req.params.id);
     const {
-      course, learnclickUser, padletAccount,
-      periodTo, dataFrom, dataTo, grid, teacherNote, html, status,
+      studentId, course, learnclickUser, padletAccount,
+      periodTo, dataFrom, dataTo, grid, teacherNote, html, classId, status,
     } = req.body;
     const data: any = {};
+    if (classId !== undefined) data.classId = classId || null;
     if (course !== undefined) data.course = course;
     if (learnclickUser !== undefined) data.learnclickUser = learnclickUser;
     if (padletAccount !== undefined) data.padletAccount = padletAccount;

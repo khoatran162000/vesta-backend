@@ -57,15 +57,17 @@ export const getShareReport = async (req: Request, res: Response) => {
 // ─── List (staff): lọc theo HS hoặc lớp ───
 export const listFinalReports = async (req: Request, res: Response) => {
   try {
-    const { studentId, course } = req.query;
+    const { studentId, classId, course } = req.query;
     const where: any = {};
     if (studentId) where.studentId = String(studentId);
+    if (classId) where.classId = String(classId);
     if (course) where.course = String(course);
     const data = await prisma.finalReport.findMany({
       where,
       orderBy: { createdAt: "desc" },
       include: {
         student: { select: { id: true, fullName: true, studentCode: true, course: true } },
+        class: { select: { id: true, name: true } },
         creator: { select: { fullName: true } },
       },
     });
@@ -118,7 +120,7 @@ export const getFinalReport = async (req: Request, res: Response) => {
 export const createFinalReport = async (req: Request, res: Response) => {
   try {
     const userId = uid(req);
-    const { studentId, course, learnclickUser, skillGrid, review, prediction, orientation, html, status } = req.body;
+    const { studentId, classId, course, learnclickUser, skillGrid, review, prediction, orientation, html, status } = req.body;
     if (!studentId) return res.status(400).json({ success: false, message: "Thiếu học sinh" });
     const hasHtml = typeof html === "string" && html.trim().length > 0;
     if (!hasHtml && !skillGrid) {
@@ -127,6 +129,7 @@ export const createFinalReport = async (req: Request, res: Response) => {
     const report = await prisma.finalReport.create({
       data: {
         studentId,
+        classId: classId || null,
         course: course ?? null,
         learnclickUser: learnclickUser ?? null,
         skillGrid: (skillGrid ?? null) as any,
@@ -150,9 +153,10 @@ export const createFinalReport = async (req: Request, res: Response) => {
 export const updateFinalReport = async (req: Request, res: Response) => {
   try {
     const id = String(req.params.id);
-    const { course, learnclickUser, skillGrid, review, prediction, orientation, html, status } = req.body;
+    const { course, classId, learnclickUser, skillGrid, review, prediction, orientation, html, status } = req.body;
     const data: any = {};
     if (course !== undefined) data.course = course;
+    if (classId !== undefined) data.classId = classId || null;
     if (learnclickUser !== undefined) data.learnclickUser = learnclickUser;
     if (skillGrid !== undefined) data.skillGrid = skillGrid as any;
     if (review !== undefined) data.review = review as any;
