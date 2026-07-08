@@ -1,6 +1,7 @@
-// FILE: src/controllers/report.controller.ts — Báo cáo định kỳ hàng tuần
+// FILE: src/controllers/report.controller.ts — Báo cáo định kỳ hàng tuần (form + HTML dán + link chia sẻ)
 import { Request, Response } from "express";
 import { PrismaClient } from "@prisma/client";
+import crypto from "crypto";
 const prisma = new PrismaClient();
 
 function uid(req: Request): string | undefined {
@@ -13,8 +14,44 @@ function isStaff(req: Request): boolean {
   const r = role(req);
   return r === "ADMIN" || r === "TEACHER";
 }
+function genToken(): string {
+  return crypto.randomBytes(16).toString("hex");
+}
+// Dựng URL chia sẻ công khai. Ưu tiên PUBLIC_API_URL, sau đó suy từ request.
+function shareUrlFor(req: Request, token: string): string {
+  const env = process.env.PUBLIC_API_URL;
+  let base: string;
+  if (env) {
+    base = env.replace(/\/$/, "");
+  } else {
+    const xfProto = String(req.headers["x-forwarded-proto"] || "").split(",")[0].trim();
+    const proto = xfProto || req.protocol || "http";
+    const host = String(req.headers["x-forwarded-host"] || req.get("host") || "").trim();
+    base = `${proto}://${host}/api`;
+  }
+  return `${base}/reports/share/${token}`;
+}
 
-// ─── List: staff xem theo HS; student không dùng route này ───
+// ─── PUBLIC: phục vụ HTML report qua token (link gửi phụ huynh) ───
+export const getShareReport = async (req: Request, res: Response) => {
+  try {
+    const token = String(req.params.token);
+    const r = await prisma.weeklyReport.findUnique({ where: { shareToken: token } });
+    res.set("Content-Type", "text/html; charset=utf-8");
+    if (!r || r.status !== "PUBLISHED" || !r.html) {
+      return res
+        .status(404)
+        .send(
+          "<!doctype html><html lang='vi'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><title>Không tìm thấy báo cáo</title></head><body style='font-family:system-ui,sans-serif;padding:48px;text-align:center;color:#334155'><h2>Không tìm thấy báo cáo</h2><p>Link không hợp lệ hoặc báo cáo chưa được công bố.</p></body></html>"
+        );
+    }
+    return res.send(r.html);
+  } catch (error) {
+    return res.status(500).set("Content-Type", "text/html; charset=utf-8").send("<h2>Lỗi tải báo cáo</h2>");
+  }
+};
+
+// ─── List (staff) ───
 export const listReports = async (req: Request, res: Response) => {
   try {
     const { studentId } = req.query;
@@ -52,7 +89,7 @@ export const getMyReports = async (req: Request, res: Response) => {
   }
 };
 
-// ─── Detail: staff xem mọi báo cáo; student chỉ xem báo cáo của mình + PUBLISHED ───
+// ─── Detail (staff xem mọi; student chỉ của mình + PUBLISHED) ───
 export const getReport = async (req: Request, res: Response) => {
   try {
     const id = String(req.params.id);
@@ -64,14 +101,13 @@ export const getReport = async (req: Request, res: Response) => {
       },
     });
     if (!report) return res.status(404).json({ success: false, message: "Không tìm thấy báo cáo" });
-
     if (!isStaff(req)) {
-      // student: phải là chủ + đã publish
       if (report.studentId !== uid(req) || report.status !== "PUBLISHED") {
         return res.status(403).json({ success: false, message: "Bạn không có quyền xem báo cáo này" });
       }
     }
-    return res.json({ success: true, data: report });
+    const shareUrl = report.html && report.shareToken ? shareUrlFor(req, report.shareToken) : null;
+    return res.json({ success: true, data: { ...report, shareUrl } });
   } catch (error) {
     return res.status(500).json({ success: false, message: "Lỗi tải báo cáo" });
   }
@@ -83,12 +119,13 @@ export const createReport = async (req: Request, res: Response) => {
     const userId = uid(req);
     const {
       studentId, course, learnclickUser, padletAccount,
-      periodTo, dataFrom, dataTo, grid, teacherNote, status,
+      periodTo, dataFrom, dataTo, grid, teacherNote, html, status,
     } = req.body;
-
     if (!studentId) return res.status(400).json({ success: false, message: "Thiếu học sinh" });
-    if (!grid) return res.status(400).json({ success: false, message: "Thiếu dữ liệu bảng điểm" });
-
+    const hasHtml = typeof html === "string" && html.trim().length > 0;
+    if (!hasHtml && !grid) {
+      return res.status(400).json({ success: false, message: "Cần dán HTML hoặc nhập bảng điểm" });
+    }
     const report = await prisma.weeklyReport.create({
       data: {
         studentId,
@@ -98,13 +135,16 @@ export const createReport = async (req: Request, res: Response) => {
         periodTo: periodTo ? new Date(periodTo) : null,
         dataFrom: dataFrom ? new Date(dataFrom) : null,
         dataTo: dataTo ? new Date(dataTo) : null,
-        grid: grid as any,
+        grid: (grid ?? null) as any,
         teacherNote: (teacherNote ?? null) as any,
+        html: hasHtml ? html : null,
+        shareToken: genToken(),
         status: status === "PUBLISHED" ? "PUBLISHED" : "DRAFT",
         createdBy: userId!,
       },
     });
-    return res.status(201).json({ success: true, data: report });
+    const shareUrl = report.html && report.shareToken ? shareUrlFor(req, report.shareToken) : null;
+    return res.status(201).json({ success: true, data: { ...report, shareUrl } });
   } catch (error) {
     return res.status(500).json({ success: false, message: "Lỗi tạo báo cáo" });
   }
@@ -116,9 +156,8 @@ export const updateReport = async (req: Request, res: Response) => {
     const id = String(req.params.id);
     const {
       course, learnclickUser, padletAccount,
-      periodTo, dataFrom, dataTo, grid, teacherNote, status,
+      periodTo, dataFrom, dataTo, grid, teacherNote, html, status,
     } = req.body;
-
     const data: any = {};
     if (course !== undefined) data.course = course;
     if (learnclickUser !== undefined) data.learnclickUser = learnclickUser;
@@ -128,10 +167,13 @@ export const updateReport = async (req: Request, res: Response) => {
     if (dataTo !== undefined) data.dataTo = dataTo ? new Date(dataTo) : null;
     if (grid !== undefined) data.grid = grid as any;
     if (teacherNote !== undefined) data.teacherNote = teacherNote as any;
+    if (html !== undefined) data.html = html;
     if (status !== undefined) data.status = status === "PUBLISHED" ? "PUBLISHED" : "DRAFT";
-
+    const existing = await prisma.weeklyReport.findUnique({ where: { id }, select: { shareToken: true } });
+    if (existing && !existing.shareToken) data.shareToken = genToken();
     const report = await prisma.weeklyReport.update({ where: { id }, data });
-    return res.json({ success: true, data: report });
+    const shareUrl = report.html && report.shareToken ? shareUrlFor(req, report.shareToken) : null;
+    return res.json({ success: true, data: { ...report, shareUrl } });
   } catch (error) {
     return res.status(500).json({ success: false, message: "Lỗi cập nhật báo cáo" });
   }

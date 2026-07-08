@@ -316,8 +316,10 @@ model WeeklyReport {
   periodTo       DateTime?
   dataFrom       DateTime?
   dataTo         DateTime?
-  grid           Json
+  grid           Json?                             // nới optional: report HTML không có grid
   teacherNote    Json?
+  html           String?   @db.LongText            // NEW: report HTML/CSS dán trực tiếp
+  shareToken     String?   @unique                 // NEW: token link chia sẻ công khai
   status         String    @default("DRAFT")
   createdBy      String
   creator        User      @relation("ReportCreator", fields: [createdBy], references: [id])
