@@ -71,6 +71,8 @@ model User {
   reportsCreated      WeeklyReport[]        @relation("ReportCreator")
   finalReportsReceived FinalReport[]        @relation("StudentFinalReport")
   finalReportsCreated  FinalReport[]        @relation("FinalReportCreator")
+  classesCreated       Class[]           @relation("ClassCreator")
+  enrollments          ClassEnrollment[] @relation("StudentEnrollments")
   @@index([role])
   @@index([isActive])
   @@index([studentCode])
@@ -413,4 +415,44 @@ model SiteContent {
   data      Json
   updatedAt DateTime @updatedAt
   @@map("site_contents")
+}
+
+// ═══════════════════════ CLASS (lớp học cụ thể) ═══════════════════════
+model Class {
+  id          String   @id @default(uuid())
+  name        String                        // "7+ Tối 246 - KG tháng 3"
+  classCode   String?  @unique              // mã lớp riêng (tuỳ chọn)
+  course      String?                        // level/trình độ: "7+", "6+"... (để nhóm & lọc)
+  teacher     String?
+  schedule    String?  @db.Text             // "Tối T2-4-6, 19:30-21:00"
+  room        String?
+  startDate   DateTime?
+  maxStudents Int?
+  status      String   @default("ACTIVE")   // ACTIVE | CLOSED
+  isActive    Boolean  @default(true)
+  notes       String?  @db.Text
+  createdBy   String
+  creator     User     @relation("ClassCreator", fields: [createdBy], references: [id])
+  enrollments ClassEnrollment[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  @@index([course])
+  @@index([status])
+  @@index([isActive])
+  @@map("classes")
+}
+
+// ═══════════════════════ CLASS ENROLLMENT (nối HS ↔ lớp, nhiều-nhiều) ═══════════════════════
+model ClassEnrollment {
+  id        String   @id @default(uuid())
+  classId   String
+  class     Class    @relation(fields: [classId], references: [id], onDelete: Cascade)
+  studentId String
+  student   User     @relation("StudentEnrollments", fields: [studentId], references: [id], onDelete: Cascade)
+  status    String   @default("STUDYING")   // STUDYING | COMPLETED | LEFT
+  joinedAt  DateTime @default(now())
+  @@unique([classId, studentId])
+  @@index([classId])
+  @@index([studentId])
+  @@map("class_enrollments")
 }
