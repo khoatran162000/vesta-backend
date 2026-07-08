@@ -37,6 +37,7 @@ app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 app.use(cookieParser());
 app.use(compression());
+app.set("trust proxy", true);
 
 if (process.env.NODE_ENV === "development") {
   app.use(morgan("dev"));

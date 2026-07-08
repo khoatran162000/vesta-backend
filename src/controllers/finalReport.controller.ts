@@ -18,15 +18,20 @@ function isStaff(req: Request): boolean {
 function genToken(): string {
   return crypto.randomBytes(16).toString("hex");
 }
-// Dựng URL chia sẻ công khai. Ưu tiên env PUBLIC_API_URL nếu có (vd: https://api.vestaedu.online/api),
-// nếu không thì suy ra từ header proxy (nginx) — thường ra đúng https://api.vestaedu.online/api
+// Dựng URL chia sẻ công khai.
+// Ưu tiên PUBLIC_API_URL (nếu set) → sau đó suy từ request (proto + host).
 function shareUrlFor(req: Request, token: string): string {
   const env = process.env.PUBLIC_API_URL;
-  const base = env
-    ? env.replace(/\/$/, "")
-    : `${String(req.headers["x-forwarded-proto"] || "https").split(",")[0].trim()}://${String(
-        req.headers["x-forwarded-host"] || req.get("host") || ""
-      ).trim()}/api`;
+  let base: string;
+  if (env) {
+    base = env.replace(/\/$/, "");
+  } else {
+    // proto: header proxy (nginx) trước, không có thì lấy req.protocol (đúng http ở local)
+    const xfProto = String(req.headers["x-forwarded-proto"] || "").split(",")[0].trim();
+    const proto = xfProto || req.protocol || "http";
+    const host = String(req.headers["x-forwarded-host"] || req.get("host") || "").trim();
+    base = `${proto}://${host}/api`;
+  }
   return `${base}/final-reports/share/${token}`;
 }
 

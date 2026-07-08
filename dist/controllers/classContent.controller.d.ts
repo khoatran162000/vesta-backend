@@ -1,0 +1,16 @@
+import { Request, Response } from "express";
+export declare const listDiaries: (req: Request, res: Response) => Promise<Response<any, Record<string, any>>>;
+export declare const createDiary: (req: Request, res: Response) => Promise<Response<any, Record<string, any>>>;
+export declare const updateDiary: (req: Request, res: Response) => Promise<Response<any, Record<string, any>>>;
+export declare const deleteDiary: (req: Request, res: Response) => Promise<Response<any, Record<string, any>>>;
+export declare const listMaterials: (req: Request, res: Response) => Promise<Response<any, Record<string, any>>>;
+export declare const createMaterial: (req: Request, res: Response) => Promise<Response<any, Record<string, any>>>;
+export declare const updateMaterial: (req: Request, res: Response) => Promise<Response<any, Record<string, any>>>;
+export declare const deleteMaterial: (req: Request, res: Response) => Promise<Response<any, Record<string, any>>>;
+export declare const submitWork: (req: Request, res: Response) => Promise<Response<any, Record<string, any>>>;
+export declare const getMyFeedback: (req: Request, res: Response) => Promise<Response<any, Record<string, any>>>;
+export declare const listFeedback: (req: Request, res: Response) => Promise<Response<any, Record<string, any>>>;
+export declare const reviewFeedback: (req: Request, res: Response) => Promise<Response<any, Record<string, any>>>;
+export declare const getStudentFeedback: (req: Request, res: Response) => Promise<Response<any, Record<string, any>>>;
+export declare const createFeedbackForStudent: (req: Request, res: Response) => Promise<Response<any, Record<string, any>>>;
+export declare const deleteFeedback: (req: Request, res: Response) => Promise<Response<any, Record<string, any>>>;
