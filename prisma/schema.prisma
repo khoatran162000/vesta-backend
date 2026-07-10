@@ -390,6 +390,7 @@ model Course {
   price         String?
   onlinePrice   String?
   cta           String?
+  ctaLink       String?
   specialPrice  String?
   originalPrice String?
   orderIndex    Int      @default(0)
