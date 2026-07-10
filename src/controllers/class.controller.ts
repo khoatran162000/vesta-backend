@@ -28,6 +28,39 @@ export const listClasses = async (req: Request, res: Response) => {
   }
 };
 
+// Public: danh sách lớp đang mở theo khoá, kèm slot còn trống. KHÔNG auth, chỉ trả field an toàn.
+export const listPublicClasses = async (req: Request, res: Response) => {
+  try {
+    const { course } = req.query;
+    const where: any = { status: "ACTIVE", isActive: true };
+    if (course) where.course = String(course);
+    const classes = await prisma.class.findMany({
+      where,
+      orderBy: { startDate: "asc" },
+      select: {
+        id: true, name: true, course: true, teacher: true,
+        schedule: true, startDate: true, maxStudents: true,
+        _count: { select: { enrollments: { where: { status: "STUDYING" } } } },
+      },
+    });
+    const data = classes.map((c) => {
+      const enrolled = c._count.enrollments;
+      const max = c.maxStudents ?? null;
+      const slotsLeft = max !== null ? Math.max(0, max - enrolled) : null;
+      return {
+        id: c.id, name: c.name, course: c.course, teacher: c.teacher,
+        schedule: c.schedule, startDate: c.startDate,
+        maxStudents: max, enrolled,
+        slotsLeft,                       // null = không giới hạn; số = còn trống
+        isFull: slotsLeft !== null && slotsLeft <= 0,
+      };
+    });
+    return res.json({ success: true, data });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: "Lỗi tải danh sách lớp" });
+  }
+};
+
 // ─── Detail 1 lớp + danh sách HS ───
 export const getClass = async (req: Request, res: Response) => {
   try {
