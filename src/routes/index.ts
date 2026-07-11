@@ -21,6 +21,7 @@ import courseRoutes from "./course.routes";
 import bookRoutes from "./book.routes";
 import siteContentRoutes from "./siteContent.routes";
 import classRoutes from "./class.routes";
+import levelRoutes from "./level.routes";
 
 const router = Router();
 
@@ -45,6 +46,7 @@ router.use("/courses", courseRoutes);
 router.use("/books", bookRoutes);
 router.use("/site-content", siteContentRoutes);
 router.use("/classes", classRoutes);
+router.use("/levels", levelRoutes);
 
 router.get("/health", (_req, res) => {
   res.json({ status: "ok", timestamp: new Date().toISOString() });

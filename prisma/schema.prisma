@@ -466,3 +466,15 @@ model ClassEnrollment {
   @@index([studentId])
   @@map("class_enrollments")
 }
+
+model Level {
+  id        String   @id @default(uuid())
+  code      String   @unique              // chuỗi nối: "7+","6+"... (khớp Class.course)
+  label     String?                        // nhãn hiển thị tuỳ chọn: "IELTS 7+"
+  order     Int      @default(0)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([isActive])
+  @@map("levels")
+}
