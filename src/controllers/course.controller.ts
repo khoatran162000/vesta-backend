@@ -58,6 +58,7 @@ export const createCourse = async (req: Request, res: Response) => {
         onlinePrice: b.onlinePrice || null,
         cta: b.cta || null,
         ctaLink: b.ctaLink || null,
+        level: b.level || null,
         specialPrice: b.specialPrice || null,
         originalPrice: b.originalPrice || null,
         orderIndex: b.orderIndex ? parseInt(String(b.orderIndex), 10) : 0,
@@ -90,6 +91,7 @@ export const updateCourse = async (req: Request, res: Response) => {
     if (b.onlinePrice !== undefined) data.onlinePrice = b.onlinePrice || null;
     if (b.cta !== undefined) data.cta = b.cta || null;
     if (b.ctaLink !== undefined) data.ctaLink = b.ctaLink || null;
+    if (b.level !== undefined) data.level = b.level || null;
     if (b.specialPrice !== undefined) data.specialPrice = b.specialPrice || null;
     if (b.originalPrice !== undefined) data.originalPrice = b.originalPrice || null;
     if (b.orderIndex !== undefined) data.orderIndex = parseInt(String(b.orderIndex), 10) || 0;

@@ -391,6 +391,7 @@ model Course {
   onlinePrice   String?
   cta           String?
   ctaLink       String?
+  level         String?                       // trình độ để nối với Class.course: "7+","6+"...
   specialPrice  String?
   originalPrice String?
   orderIndex    Int      @default(0)
