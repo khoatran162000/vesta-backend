@@ -3,6 +3,8 @@ import { Request, Response } from "express";
 import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
 
+const VALID_STATUS = ["ACTIVE", "ENROLL_CLOSED", "FINISHED"];
+
 function uid(req: Request): string {
   return (req as any).user?.userId || "";
 }
@@ -32,14 +34,14 @@ export const listClasses = async (req: Request, res: Response) => {
 export const listPublicClasses = async (req: Request, res: Response) => {
   try {
     const { course } = req.query;
-    const where: any = { status: "ACTIVE", isActive: true };
+    const where: any = { status: { in: ["ACTIVE", "ENROLL_CLOSED"] }, isActive: true };
     if (course) where.course = String(course);
     const classes = await prisma.class.findMany({
       where,
       orderBy: { startDate: "asc" },
       select: {
         id: true, name: true, course: true, teacher: true,
-        schedule: true, startDate: true, maxStudents: true,
+        schedule: true, startDate: true, maxStudents: true, status: true,
         _count: { select: { enrollments: { where: { status: "STUDYING" } } } },
       },
     });
@@ -50,7 +52,7 @@ export const listPublicClasses = async (req: Request, res: Response) => {
       return {
         id: c.id, name: c.name, course: c.course, teacher: c.teacher,
         schedule: c.schedule, startDate: c.startDate,
-        maxStudents: max, enrolled,
+        maxStudents: max, enrolled, status: c.status,
         slotsLeft,                       // null = không giới hạn; số = còn trống
         isFull: slotsLeft !== null && slotsLeft <= 0,
       };
@@ -97,7 +99,7 @@ export const createClass = async (req: Request, res: Response) => {
         room: room || null,
         startDate: startDate ? new Date(startDate) : null,
         maxStudents: maxStudents ? parseInt(maxStudents) : null,
-        status: status === "CLOSED" ? "CLOSED" : "ACTIVE",
+        status: VALID_STATUS.includes(status) ? status : "ACTIVE",
         notes: notes || null,
         createdBy: uid(req),
       },
@@ -123,7 +125,7 @@ export const updateClass = async (req: Request, res: Response) => {
     if (room !== undefined) data.room = room || null;
     if (startDate !== undefined) data.startDate = startDate ? new Date(startDate) : null;
     if (maxStudents !== undefined) data.maxStudents = maxStudents ? parseInt(maxStudents) : null;
-    if (status !== undefined) data.status = status === "CLOSED" ? "CLOSED" : "ACTIVE";
+    if (status !== undefined) data.status = VALID_STATUS.includes(status) ? status : "ACTIVE";
     if (notes !== undefined) data.notes = notes || null;
     if (isActive !== undefined) data.isActive = !!isActive;
     const cls = await prisma.class.update({ where: { id }, data });
