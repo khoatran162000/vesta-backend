@@ -27,6 +27,7 @@ router.post("/bulk-create", authorize("ADMIN", "TEACHER"), user.bulkCreateStuden
 // Chỉ ADMIN mới sửa/khoá tài khoản
 router.put("/:id", authorize("ADMIN"), user.updateUser);
 router.patch("/:id/toggle-status", authorize("ADMIN"), user.toggleStatus);
+router.post("/:id/reset-password", authorize("ADMIN"), user.resetPassword);
 
 // Admin import học viên từ CSV
 router.post("/import-csv", authenticate, authorize("ADMIN"), uploadCSV, importStudentsFromCSV);

@@ -40,6 +40,8 @@ export async function listUsers(req: Request, res: Response) {
     const skip = (page - 1) * limit;
 
     const where: any = {};
+    // Mặc định chỉ hiện HS đang hoạt động; ?includeHidden=1 để xem cả HS đã ẩn
+    if (req.query.includeHidden !== "1") where.isActive = true;
     if (role) where.role = role;
     if (search) {
       where.OR = [
@@ -225,6 +227,24 @@ export async function toggleStatus(req: Request<Params>, res: Response) {
 
     const status = user.isActive ? "mở khoá" : "khoá";
     return api.success(res, user, `Đã ${status} tài khoản ${user.fullName}`);
+  } catch (err) {
+    return api.error(res, "Lỗi server", 500);
+  }
+}
+
+// POST /api/users/:id/reset-password — đặt lại mật khẩu, trả mật khẩu mới cho admin
+export async function resetPassword(req: Request<Params>, res: Response) {
+  try {
+    const id = req.params.id as string;
+    const existing = await prisma.user.findUnique({ where: { id } });
+    if (!existing) return api.error(res, "Tài khoản không tồn tại", 404);
+    // Mật khẩu mới = SĐT nếu có, không thì sinh ngẫu nhiên 8 ký tự
+    const newPassword = existing.phone && existing.phone.trim()
+      ? existing.phone.trim()
+      : Math.random().toString(36).slice(-8);
+    const passwordHash = await bcrypt.hash(newPassword, 12);
+    await prisma.user.update({ where: { id }, data: { passwordHash } });
+    return api.success(res, { newPassword }, "Đã đặt lại mật khẩu");
   } catch (err) {
     return api.error(res, "Lỗi server", 500);
   }
