@@ -32,13 +32,13 @@ export const listDiaries = async (req: Request, res: Response) => {
 export const createDiary = async (req: Request, res: Response) => {
   try {
     const userId = uid(req);
-    const { course, session, date, topic, homework, duration, teacherNote, contentHtml } = req.body;
+    const { course, session, date, topic, homework, duration, teacherNote, contentHtml, scoreTable } = req.body;
     // Bắt buộc có nội dung: hoặc topic (nhập thường), hoặc contentHtml (dán HTML)
     if (!course || !session || !date || (!topic && !contentHtml)) {
       return res.status(400).json({ success: false, message: "Thiếu thông tin bắt buộc" });
     }
     const diary = await prisma.classDiary.create({
-      data: { course, session: Number(session), date: new Date(date), topic: topic || "", homework, duration, teacherNote, contentHtml: contentHtml || null, createdBy: userId },
+      data: { course, session: Number(session), date: new Date(date), topic: topic || "", homework, duration, teacherNote, contentHtml: contentHtml || null, scoreTable: scoreTable ?? undefined, createdBy: userId },
     });
     return res.status(201).json({ success: true, data: diary });
   } catch (error) {
