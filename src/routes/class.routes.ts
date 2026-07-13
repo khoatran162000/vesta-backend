@@ -7,6 +7,7 @@ const router = Router();
 const staff = ["ADMIN", "TEACHER"];
 // Public — KHÔNG auth. Phải đặt trước "/:id" để không bị nuốt.
 router.get("/public", cls.listPublicClasses);
+router.get("/of-student/:studentId", authenticate, authorize(...staff), cls.getClassesOfStudent);
 router.get("/", authenticate, authorize(...staff), cls.listClasses);
 router.post("/", authenticate, authorize(...staff), cls.createClass);
 router.get("/:id", authenticate, authorize(...staff), cls.getClass);

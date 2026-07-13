@@ -178,6 +178,26 @@ export const unenrollStudent = async (req: Request, res: Response) => {
   }
 };
 
+// GET /api/classes/of-student/:studentId — các lớp mà 1 HS đang thuộc
+export const getClassesOfStudent = async (req: Request, res: Response) => {
+  try {
+    const studentId = String(req.params.studentId);
+    const enrollments = await prisma.classEnrollment.findMany({
+      where: { studentId },
+      select: {
+        status: true,
+        class: { select: { id: true, name: true, course: true, status: true } },
+      },
+    });
+    const data = enrollments
+      .filter((e) => e.class)
+      .map((e) => ({ ...e.class, enrollStatus: e.status }));
+    return res.json({ success: true, data });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: "Lỗi tải lớp của học viên" });
+  }
+};
+
 // ─── Đổi trạng thái ghi danh (STUDYING/COMPLETED/LEFT) ───
 export const updateEnrollment = async (req: Request, res: Response) => {
   try {
