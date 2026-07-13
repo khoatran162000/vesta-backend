@@ -197,6 +197,7 @@ model ClassDiary {
   homework    String?  @db.Text
   duration    String?
   teacherNote String?  @db.Text
+  contentHtml String?  @db.Text
   createdBy   String
   creator     User     @relation("DiaryCreator", fields: [createdBy], references: [id])
   createdAt   DateTime @default(now())
