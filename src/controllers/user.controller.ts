@@ -58,8 +58,8 @@ export async function listUsers(req: Request, res: Response) {
         take: limit,
         select: {
           id: true, email: true, studentCode: true, fullName: true,
-          phone: true, address: true, role: true, avatarUrl: true,
-          isActive: true, createdAt: true,
+          phone: true, address: true, cccd: true, course: true, testScore: true,
+          role: true, avatarUrl: true, isActive: true, createdAt: true,
         },
       }),
       prisma.user.count({ where }),
@@ -177,7 +177,7 @@ export async function createUser(req: Request, res: Response) {
 export async function updateUser(req: Request<Params>, res: Response) {
   try {
     const id = req.params.id as string;
-    const { fullName, role, password, phone, address, email } = req.body;
+    const { fullName, role, password, phone, address, email, testScore } = req.body;
 
     const existing = await prisma.user.findUnique({ where: { id } });
     if (!existing) return api.error(res, "Tài khoản không tồn tại", 404);
@@ -189,6 +189,7 @@ export async function updateUser(req: Request<Params>, res: Response) {
     if (phone !== undefined) updateData.phone = phone || null;
     if (address !== undefined) updateData.address = address || null;
     if (email !== undefined) updateData.email = email || null;
+    if (testScore !== undefined) updateData.testScore = testScore || null;
 
     const user = await prisma.user.update({
       where: { id },
