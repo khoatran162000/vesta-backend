@@ -83,12 +83,13 @@ export const listMaterials = async (req: Request, res: Response) => {
 export const createMaterial = async (req: Request, res: Response) => {
   try {
     const userId = uid(req);
-    const { course, title, description, fileUrl, fileType, orderIndex, isPublished } = req.body;
-    if (!course || !title || !fileUrl) {
+    const { course, title, description, fileUrl, fileType, orderIndex, isPublished, contentHtml } = req.body;
+    // Tài liệu = link file HOẶC bài HTML dán trực tiếp
+    if (!course || !title || (!fileUrl && !contentHtml)) {
       return res.status(400).json({ success: false, message: "Thiếu thông tin" });
     }
     const mat = await prisma.material.create({
-      data: { course, title, description, fileUrl, fileType, orderIndex: Number(orderIndex || 0), isPublished: isPublished !== false, createdBy: userId },
+      data: { course, title, description, fileUrl: fileUrl || "", fileType, contentHtml: contentHtml || null, orderIndex: Number(orderIndex || 0), isPublished: isPublished !== false, createdBy: userId },
     });
     return res.status(201).json({ success: true, data: mat });
   } catch { return res.status(500).json({ success: false, message: "Lỗi tạo tài liệu" }); }
@@ -158,11 +159,12 @@ export const reviewFeedback = async (req: Request, res: Response) => {
   try {
     const reviewerId = uid(req);
     const id = String(req.params.id);
-    const { teacherComment, score } = req.body;
+    const { teacherComment, commentHtml, score } = req.body;
     const fb = await prisma.feedback.update({
       where: { id },
       data: {
         teacherComment,
+        commentHtml: commentHtml !== undefined ? (commentHtml || null) : undefined,
         score: score !== undefined && score !== null ? Number(score) : undefined,
         status: "REVIEWED",
         reviewedBy: reviewerId,
@@ -234,13 +236,13 @@ export const getStudentFeedback = async (req: Request, res: Response) => {
 export const createFeedbackForStudent = async (req: Request, res: Response) => {
   try {
     const reviewerId = uid(req);
-    const { studentId, title, studentWork, teacherComment, score } = req.body;
+    const { studentId, title, studentWork, teacherComment, commentHtml, score } = req.body;
 
     if (!studentId || !title) {
       return res.status(400).json({ success: false, message: "Thiếu học viên hoặc tiêu đề" });
     }
 
-    const hasReview = (teacherComment != null && teacherComment !== "") || (score != null);
+    const hasReview = (teacherComment != null && teacherComment !== "") || (commentHtml != null && commentHtml !== "") || (score != null);
 
     const fb = await prisma.feedback.create({
       data: {
@@ -248,6 +250,7 @@ export const createFeedbackForStudent = async (req: Request, res: Response) => {
         title,
         studentWork: studentWork || null,
         teacherComment: teacherComment || null,
+        commentHtml: commentHtml || null,
         score: score != null ? Number(score) : null,
         status: hasReview ? "REVIEWED" : "PENDING",
         reviewedBy: hasReview ? reviewerId : null,

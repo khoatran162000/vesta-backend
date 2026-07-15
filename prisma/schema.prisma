@@ -219,6 +219,7 @@ model Material {
   isPublished Boolean  @default(true)
   createdBy   String
   creator     User     @relation("MaterialCreator", fields: [createdBy], references: [id])
+  contentHtml String?  @db.Text
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   @@index([course])
@@ -239,6 +240,7 @@ model Feedback {
   reviewedBy     String?
   reviewer       User?     @relation("FeedbackReviewer", fields: [reviewedBy], references: [id])
   reviewedAt     DateTime?
+  commentHtml    String?   @db.Text
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
   @@index([studentId])
