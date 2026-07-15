@@ -28,11 +28,22 @@ export interface GradeResult {
 }
 
 /**
- * Chuẩn hoá 1 chuỗi để so sánh: trim + (tuỳ chọn) lowercase
+ * Chuẩn hoá 1 chuỗi để so sánh.
+ * Nới rộng cho đáp án dạng CỤM DÀI (bài dán từ LearnClick): học viên gõ thừa
+ * dấu chấm cuối câu, thừa khoảng trắng, hay dùng nháy thẳng thay nháy cong
+ * thì vẫn tính đúng. Áp dụng ĐỐI XỨNG cho cả đáp án lẫn bài làm.
  */
 function normalize(s: string, caseSensitive: boolean): string {
-  const trimmed = String(s ?? "").trim();
-  return caseSensitive ? trimmed : trimmed.toLowerCase();
+  let out = String(s ?? "")
+    .replace(/[\u2018\u2019\u02BC]/g, "'")   // ' ' → '
+    .replace(/[\u201C\u201D]/g, '"')          // " " → "
+    .replace(/[\u2013\u2014]/g, "-")          // – — → -
+    .replace(/\s+/g, " ")                     // gộp khoảng trắng (gồm cả &nbsp;)
+    .trim();
+  // Bỏ dấu câu ở cuối — nhưng giữ nguyên nếu đáp án CHỈ gồm dấu câu
+  const stripped = out.replace(/[.,;:!?]+$/, "").trim();
+  if (stripped.length > 0) out = stripped;
+  return caseSensitive ? out : out.toLowerCase();
 }
 
 /**

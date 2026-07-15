@@ -1,7 +1,7 @@
 // FILE: src/controllers/interactive.controller.ts — GHI ĐÈ (LearnClick gaps)
 // Bài tập tương tác — hỗ trợ cả mô hình GAP (LearnClick) lẫn questions cũ
 import { Request, Response } from "express";
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, Prisma } from "@prisma/client";
 import { gradeGaps, normalizeGaps, stripGapAnswers } from "../utils/gradeGaps";
 const prisma = new PrismaClient();
 
@@ -157,7 +157,7 @@ export const updateExercise = async (req: Request, res: Response) => {
     const data: any = { ...rest };
     // Nếu có gaps trong body thì chuẩn hoá lại trước khi lưu
     if (gaps !== undefined) {
-      data.gaps = gaps && Object.keys(gaps).length > 0 ? (normalizeGaps(gaps) as any) : undefined;
+      data.gaps = gaps && Object.keys(gaps).length > 0 ? (normalizeGaps(gaps) as any) : Prisma.DbNull;
     }
     const ex = await prisma.interactiveExercise.update({
       where: { id: String(req.params.id) },
