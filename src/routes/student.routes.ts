@@ -18,6 +18,7 @@ router.get("/exams", student.getExams);
 
 // ─── Exam Engine ───
 router.post("/exams/:examId/start", student.startExam);
+router.get("/attempts/:attemptId", student.getAttempt);
 router.put("/attempts/:attemptId/save", student.saveAnswers);
 router.post("/attempts/:attemptId/submit", student.submitExam);
 

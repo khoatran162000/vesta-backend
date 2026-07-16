@@ -179,6 +179,39 @@ export async function startExam(req: Request<Params>, res: Response) {
   }
 }
 
+// GET /api/student/attempts/:attemptId — Lấy lại bài đang làm dở (F5 / mất mạng / đóng nhầm tab)
+export async function getAttempt(req: Request<Params>, res: Response) {
+  try {
+    const attemptId = req.params.attemptId as string;
+    const studentId = req.user!.userId;
+    const attempt = await prisma.examAttempt.findFirst({
+      where: { id: attemptId, studentId },   // chỉ lấy bài CỦA CHÍNH HS này
+      include: { exam: { include: { questions: { orderBy: { orderIndex: "asc" } } } } },
+    });
+    if (!attempt) return api.error(res, "Không tìm thấy lượt thi", 404);
+    if (attempt.status !== "IN_PROGRESS") return api.error(res, "Bài thi này đã nộp", 400);
+    return api.success(res, {
+      attemptId: attempt.id,
+      exam: {
+        id: attempt.exam.id, title: attempt.exam.title,
+        duration: attempt.exam.duration, totalScore: attempt.exam.totalScore,
+        questions: attempt.exam.questions.map((q) => ({
+          id: q.id, type: q.type, content: q.content, mediaUrl: q.mediaUrl,
+          options: q.options, score: q.score, orderIndex: q.orderIndex,
+          // KHÔNG trả correctAnswer và explanation khi đang làm bài
+        })),
+      },
+      startTime: attempt.startTime,
+      answers: attempt.answers || {},
+      studentNotes: attempt.studentNotes || {},
+      resumed: true,
+    });
+  } catch (err) {
+    console.error("Get attempt error:", err);
+    return api.error(res, "Lỗi server", 500);
+  }
+}
+
 // PUT /api/student/attempts/:attemptId/save — Auto-save mỗi 30s
 export async function saveAnswers(req: Request<Params>, res: Response) {
   try {
