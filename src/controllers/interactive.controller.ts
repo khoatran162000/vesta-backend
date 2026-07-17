@@ -9,16 +9,26 @@ function uid(req: Request): string | undefined {
   return (req as any).user?.userId;
 }
 
-function getVisibilityFilter(user: any) {
+// JWT chỉ có { userId, role } → phải lấy course từ DB (và HS chuyển lớp thì token cũ vẫn đúng)
+async function studentCourse(req: Request): Promise<string | null> {
+  const id = uid(req);
+  if (!id) return null;
+  const u = await prisma.user.findUnique({ where: { id }, select: { course: true } });
+  return u?.course || null;
+}
+
+async function getVisibilityFilter(req: Request) {
+  const user = (req as any).user;
   if (!user) return { visibility: "PUBLIC", isPublished: true };
   if (user.role === "ADMIN" || user.role === "TEACHER") return {};
   if (user.role === "STUDENT") {
+    const course = await studentCourse(req);
     return {
       isPublished: true,
       OR: [
         { visibility: "PUBLIC" },
         { visibility: "STUDENT" },
-        ...(user.course ? [{ visibility: "CLASS", visibleTo: { contains: user.course } }] : []),
+        ...(course ? [{ visibility: "CLASS", visibleTo: { contains: course } }] : []),
       ],
     };
   }
@@ -55,7 +65,7 @@ export const listExercises = async (req: Request, res: Response) => {
   try {
     const user = (req as any).user;
     const { postId } = req.query;
-    const where: any = getVisibilityFilter(user);
+    const where: any = await getVisibilityFilter(req);
     if (postId) where.postId = postId;
     const data = await prisma.interactiveExercise.findMany({
       where,
@@ -94,7 +104,8 @@ export const getExercise = async (req: Request, res: Response) => {
       return res.status(401).json({ success: false, message: "Vui lòng đăng nhập" });
     }
     if (user?.role === "STUDENT" && ex.visibility === "CLASS") {
-      if (!user.course || !ex.visibleTo?.includes(user.course)) {
+      const course = await studentCourse(req);
+      if (!course || !ex.visibleTo?.includes(course)) {
         return res.status(403).json({ success: false, message: "Bạn không có quyền xem bài này" });
       }
     }

@@ -11,13 +11,32 @@ function uid(req: Request): string {
   return (req as any).user?.userId || "";
 }
 
+// Lấy khoá học THẬT của HS từ DB — KHÔNG tin ?course= client gửi, và JWT không chứa course
+async function studentCourse(req: Request): Promise<string | null> {
+  const id = uid(req);
+  if (!id) return null;
+  const u = await prisma.user.findUnique({ where: { id }, select: { course: true } });
+  return u?.course || null;
+}
+
 // ═══════════════════════════════════════════
 // CLASS DIARY — Nhật ký buổi học
 // ═══════════════════════════════════════════
 export const listDiaries = async (req: Request, res: Response) => {
   const { course, page = "1", limit = "50" } = req.query;
+  const role = (req as any).user?.role;
   const where: any = {};
   if (course) where.course = course;
+
+  // HS chỉ được xem nhật ký khoá CỦA MÌNH (ép theo DB, bỏ qua ?course= client gửi)
+  if (role === "STUDENT") {
+    const myCourse = await studentCourse(req);
+    if (!myCourse) {
+      return res.json({ success: true, data: [], meta: { total: 0, page: Number(page), limit: Number(limit) } });
+    }
+    where.course = myCourse;
+  }
+
   const [data, total] = await Promise.all([
     prisma.classDiary.findMany({
       where, orderBy: { date: "desc" },
@@ -26,7 +45,11 @@ export const listDiaries = async (req: Request, res: Response) => {
     }),
     prisma.classDiary.count({ where }),
   ]);
-  return res.json({ success: true, data, meta: { total, page: Number(page), limit: Number(limit) } });
+
+  // Bảng điểm cả lớp CHỈ GV/admin xem — tránh lộ điểm + nhận xét ý thức chéo giữa HS
+  const safe = role === "STUDENT" ? data.map(({ scoreTable, ...rest }) => rest) : data;
+
+  return res.json({ success: true, data: safe, meta: { total, page: Number(page), limit: Number(limit) } });
 };
 
 export const createDiary = async (req: Request, res: Response) => {
@@ -72,7 +95,15 @@ export const listMaterials = async (req: Request, res: Response) => {
   const where: any = {};
   if (course) where.course = course;
   const userRole = (req as any).user?.role;
-  if (userRole === "STUDENT") where.isPublished = true;
+
+  // HS: chỉ tài liệu đã đăng, và chỉ khoá CỦA MÌNH (ép theo DB)
+  if (userRole === "STUDENT") {
+    where.isPublished = true;
+    const myCourse = await studentCourse(req);
+    if (!myCourse) return res.json({ success: true, data: [] });
+    where.course = myCourse;
+  }
+
   const data = await prisma.material.findMany({
     where, orderBy: { orderIndex: "asc" },
     include: { creator: { select: { fullName: true } } },
