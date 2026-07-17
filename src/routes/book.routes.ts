@@ -9,8 +9,9 @@ const staff = ["ADMIN", "TEACHER"];
 
 router.get("/", bc.listBooks);
 router.get("/:id", authenticate, authorize(...staff), bc.getBook);
-router.post("/", authenticate, authorize(...staff), bc.createBook);
-router.put("/:id", authenticate, authorize(...staff), bc.updateBook);
-router.delete("/:id", authenticate, authorize(...staff), bc.deleteBook);
+// Sách & giáo trình = nội dung: chỉ ADMIN sửa
+router.post("/", authenticate, authorize("ADMIN"), bc.createBook);
+router.put("/:id", authenticate, authorize("ADMIN"), bc.updateBook);
+router.delete("/:id", authenticate, authorize("ADMIN"), bc.deleteBook);
 
 export default router;

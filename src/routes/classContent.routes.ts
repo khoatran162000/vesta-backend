@@ -15,9 +15,10 @@ router.delete("/diaries/:id", authenticate, authorize(...staff), cc.deleteDiary)
 
 // ── Tài liệu ──
 router.get("/materials", authenticate, cc.listMaterials);
-router.post("/materials", authenticate, authorize(...staff), cc.createMaterial);
-router.put("/materials/:id", authenticate, authorize(...staff), cc.updateMaterial);
-router.delete("/materials/:id", authenticate, authorize(...staff), cc.deleteMaterial);
+// Tài liệu = nội dung: chỉ ADMIN sửa
+router.post("/materials", authenticate, authorize("ADMIN"), cc.createMaterial);
+router.put("/materials/:id", authenticate, authorize("ADMIN"), cc.updateMaterial);
+router.delete("/materials/:id", authenticate, authorize("ADMIN"), cc.deleteMaterial);
 
 // ── Feedback / Vở ghi ──
 router.post("/feedback/submit", authenticate, cc.submitWork);              // Student nộp bài

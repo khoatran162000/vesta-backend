@@ -6,10 +6,11 @@ import { uploadThumbnail } from "../middlewares/upload.middleware";
 import * as sc from "../controllers/siteContent.controller";
 
 const router = Router();
-const staff = ["ADMIN", "TEACHER"];
+// Nội dung trang chủ = CMS, cùng nhóm với bài viết blog (post.routes dùng cmsRoles)
+const cmsRoles = ["ADMIN", "CONTENT_CREATOR"];
 
 router.get("/", sc.listSiteContent);
 router.get("/:key", sc.getSiteContent);
-router.put("/:key", authenticate, authorize(...staff), uploadThumbnail, sc.upsertSiteContent);
+router.put("/:key", authenticate, authorize(...cmsRoles), uploadThumbnail, sc.upsertSiteContent);
 
 export default router;

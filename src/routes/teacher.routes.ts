@@ -10,8 +10,9 @@ const staff = ["ADMIN", "TEACHER"];
 
 router.get("/", tc.listTeachers);
 router.get("/:id", authenticate, authorize(...staff), tc.getTeacher);
-router.post("/", authenticate, authorize(...staff), uploadThumbnail, tc.createTeacher);
-router.put("/:id", authenticate, authorize(...staff), uploadThumbnail, tc.updateTeacher);
-router.delete("/:id", authenticate, authorize(...staff), tc.deleteTeacher);
+// Hồ sơ GV hiện trên landing = nội dung: chỉ ADMIN sửa
+router.post("/", authenticate, authorize("ADMIN"), uploadThumbnail, tc.createTeacher);
+router.put("/:id", authenticate, authorize("ADMIN"), uploadThumbnail, tc.updateTeacher);
+router.delete("/:id", authenticate, authorize("ADMIN"), tc.deleteTeacher);
 
 export default router;

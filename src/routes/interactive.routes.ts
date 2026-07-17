@@ -19,8 +19,9 @@ router.get("/my/attempts", authenticate, ix.getMyAttempts);
 
 // Admin/Teacher: CRUD
 router.get("/:id/attempts", authenticate, authorize(...staff), ix.getExerciseAttempts);
-router.post("/", authenticate, authorize(...staff), ix.createExercise);
-router.put("/:id", authenticate, authorize(...staff), ix.updateExercise);
-router.delete("/:id", authenticate, authorize(...staff), ix.deleteExercise);
+// Bài tập = nội dung của trung tâm: chỉ ADMIN tạo/sửa/xoá
+router.post("/", authenticate, authorize("ADMIN"), ix.createExercise);
+router.put("/:id", authenticate, authorize("ADMIN"), ix.updateExercise);
+router.delete("/:id", authenticate, authorize("ADMIN"), ix.deleteExercise);
 
 export default router;

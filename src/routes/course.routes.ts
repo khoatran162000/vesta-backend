@@ -9,8 +9,9 @@ const staff = ["ADMIN", "TEACHER"];
 
 router.get("/", cc.listCourses);
 router.get("/:id", authenticate, authorize(...staff), cc.getCourse);
-router.post("/", authenticate, authorize(...staff), cc.createCourse);
-router.put("/:id", authenticate, authorize(...staff), cc.updateCourse);
-router.delete("/:id", authenticate, authorize(...staff), cc.deleteCourse);
+// Nội dung khoá học: chỉ ADMIN sửa
+router.post("/", authenticate, authorize("ADMIN"), cc.createCourse);
+router.put("/:id", authenticate, authorize("ADMIN"), cc.updateCourse);
+router.delete("/:id", authenticate, authorize("ADMIN"), cc.deleteCourse);
 
 export default router;
