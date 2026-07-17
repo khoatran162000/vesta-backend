@@ -1,6 +1,7 @@
 // FILE: src/routes/interactive.routes.ts
 import { Router } from "express";
 import { authenticate } from "../middlewares/auth.middleware";
+import { optionalAuthenticate } from "../middlewares/optionalAuth.middleware";
 import { authorize } from "../middlewares/role.middleware";
 import * as ix from "../controllers/interactive.controller";
 
@@ -8,8 +9,8 @@ const router = Router();
 const staff = ["ADMIN", "TEACHER"];
 
 // Public: list (filter theo role nếu đã login)
-router.get("/", ix.listExercises);
-router.get("/:id", ix.getExercise);
+router.get("/", optionalAuthenticate, ix.listExercises);
+router.get("/:id", optionalAuthenticate, ix.getExercise);
 router.post("/:id/check", ix.checkExercisePublic);  // Public chấm bài không lưu (khách)
 
 // Student: submit + xem attempts
