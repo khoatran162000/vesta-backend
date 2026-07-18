@@ -104,13 +104,9 @@ export async function createUser(req: Request, res: Response) {
       return api.error(res, "Họ tên và vai trò không được để trống");
     }
 
-    // Phân quyền tạo tài khoản
-    const currentRole = req.user!.role;
-    if (currentRole === "TEACHER" && role !== "STUDENT") {
-      return api.error(res, "Giáo viên chỉ có thể tạo tài khoản học viên", 403);
-    }
-    if (currentRole !== "ADMIN" && (role === "ADMIN" || role === "TEACHER" || role === "CONTENT_CREATOR")) {
-      return api.error(res, "Chỉ Admin mới có thể tạo tài khoản nhân sự", 403);
+    // Chỉ ADMIN được tạo tài khoản (chị chốt: GV không đụng account, chỉ viết nhật ký + báo cáo)
+    if (req.user!.role !== "ADMIN") {
+      return api.error(res, "Chỉ quản trị viên mới được tạo tài khoản", 403);
     }
 
     // Validate theo role
@@ -179,7 +175,7 @@ export async function createUser(req: Request, res: Response) {
 export async function updateUser(req: Request<Params>, res: Response) {
   try {
     const id = req.params.id as string;
-    const { fullName, role, password, phone, address, email, testScore } = req.body;
+    const { fullName, role, password, phone, address, email, testScore, regStatus } = req.body;
 
     const existing = await prisma.user.findUnique({ where: { id } });
     if (!existing) return api.error(res, "Tài khoản không tồn tại", 404);
@@ -192,13 +188,14 @@ export async function updateUser(req: Request<Params>, res: Response) {
     if (address !== undefined) updateData.address = address || null;
     if (email !== undefined) updateData.email = email || null;
     if (testScore !== undefined) updateData.testScore = testScore || null;
+    if (regStatus !== undefined) updateData.regStatus = regStatus || null;
 
     const user = await prisma.user.update({
       where: { id },
       data: updateData,
       select: {
         id: true, email: true, studentCode: true, fullName: true,
-        phone: true, address: true, role: true, isActive: true, createdAt: true,
+        phone: true, address: true, role: true, isActive: true, regStatus: true, createdAt: true,
       },
     });
 
@@ -319,6 +316,22 @@ export async function bulkCreateStudents(req: Request, res: Response) {
     return api.success(res, results, `Đã tạo ${results.created} tài khoản, bỏ qua ${results.skipped}`);
   } catch (err) {
     console.error("Bulk create error:", err);
+    return api.error(res, "Lỗi server", 500);
+  }
+}
+
+// PATCH /api/users/bulk-reg-status — Đánh dấu "đã ghi danh" hàng loạt (mở khoá portal HS)
+export async function bulkSetRegStatus(req: Request, res: Response) {
+  try {
+    const { ids, regStatus } = req.body as { ids: string[]; regStatus: string };
+    if (!Array.isArray(ids) || ids.length === 0) return api.error(res, "Chưa chọn học viên");
+    if (!["CONFIRMED", "TEST", "PAID"].includes(regStatus)) return api.error(res, "Trạng thái không hợp lệ");
+    const result = await prisma.user.updateMany({
+      where: { id: { in: ids }, role: "STUDENT" },
+      data: { regStatus },
+    });
+    return api.success(res, { count: result.count }, `Đã cập nhật ${result.count} học viên`);
+  } catch (err) {
     return api.error(res, "Lỗi server", 500);
   }
 }

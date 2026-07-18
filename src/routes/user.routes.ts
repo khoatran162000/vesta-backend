@@ -21,10 +21,11 @@ router.get("/", authorize("ADMIN", "TEACHER"), user.listUsers);
 router.get("/:id", authorize("ADMIN", "TEACHER"), user.getUserById);
 
 // ADMIN tạo mọi loại, TEACHER chỉ tạo STUDENT
-router.post("/", authorize("ADMIN", "TEACHER"), user.createUser);
-router.post("/bulk-create", authorize("ADMIN", "TEACHER"), user.bulkCreateStudents);
+router.post("/", authorize("ADMIN"), user.createUser);
+router.post("/bulk-create", authorize("ADMIN"), user.bulkCreateStudents);
 
 // Chỉ ADMIN mới sửa/khoá tài khoản
+router.patch("/bulk-reg-status", authorize("ADMIN"), user.bulkSetRegStatus);
 router.put("/:id", authorize("ADMIN"), user.updateUser);
 router.patch("/:id/toggle-status", authorize("ADMIN"), user.toggleStatus);
 router.post("/:id/reset-password", authorize("ADMIN"), user.resetPassword);
