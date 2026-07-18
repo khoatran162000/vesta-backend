@@ -4,12 +4,13 @@ import { Request, Response } from "express";
 import bcrypt from "bcryptjs";
 import prisma from "../config/database";
 import * as api from "../utils/apiResponse";
+import { generateUniqueStudentCode } from "../lib/studentCode";
 
 type Params = { [key: string]: string };
 
 /**
- * Tự động tạo mã học viên tiếp theo
- * Format: VS + năm + số thứ tự 3 chữ số (VD: VS2025001, VS2025002, ...)
+ * Tự động tạo mã học viên tiếp theo (kiểu cũ VS + năm + số) — GIỮ làm fallback
+ * khi không có đủ thông tin lớp/ngày để dùng công thức mới.
  */
 async function generateStudentCode(): Promise<string> {
   const year = new Date().getFullYear();
@@ -82,8 +83,8 @@ export async function getUserById(req: Request<Params>, res: Response) {
       where: { id },
       select: {
         id: true, email: true, studentCode: true, fullName: true,
-        phone: true, address: true, role: true, avatarUrl: true,
-        isActive: true, createdAt: true, updatedAt: true,
+        phone: true, address: true, course: true, startDate: true, regStatus: true,
+        role: true, avatarUrl: true, isActive: true, createdAt: true, updatedAt: true,
         _count: { select: { posts: true, examAttempts: true } },
       },
     });
@@ -98,7 +99,7 @@ export async function getUserById(req: Request<Params>, res: Response) {
 // POST /api/users
 export async function createUser(req: Request, res: Response) {
   try {
-    const { email, password, fullName, role, phone, address, studentCode } = req.body;
+    const { email, password, fullName, role, phone, address, studentCode, course, startDate } = req.body;
 
     if (!fullName || !role) {
       return api.error(res, "Họ tên và vai trò không được để trống");
@@ -111,21 +112,26 @@ export async function createUser(req: Request, res: Response) {
 
     // Validate theo role
     if (role === "STUDENT") {
-      // Student: tự động tạo studentCode nếu không cung cấp
+      const start = startDate ? new Date(startDate) : new Date();
+
+      // Mã HV: admin gõ tay thì dùng (kiểm trùng), không thì sinh theo công thức {tên}{lớp}{ddmmyy}
       let code = studentCode;
-      if (!code) code = await generateStudentCode();
+      if (code) {
+        const existingCode = await prisma.user.findUnique({ where: { studentCode: code } });
+        if (existingCode) return api.error(res, `Mã học viên ${code} đã tồn tại`, 409);
+      } else {
+        code = await generateUniqueStudentCode(fullName, course, start);
+      }
 
-      // Kiểm tra trùng studentCode
-      const existingCode = await prisma.user.findUnique({ where: { studentCode: code } });
-      if (existingCode) return api.error(res, `Mã học viên ${code} đã tồn tại`, 409);
-
-      // Kiểm tra trùng email nếu có
+      // Email tuỳ chọn — chỉ kiểm trùng nếu có
       if (email) {
         const existingEmail = await prisma.user.findUnique({ where: { email } });
         if (existingEmail) return api.error(res, "Email đã được sử dụng", 409);
       }
 
-      const passwordHash = await bcrypt.hash(password || "Student@123", 12);
+      // Mật khẩu = SĐT (nếu có), không thì mặc định Student@123
+      const rawPassword = password || (phone && String(phone).trim()) || "Student@123";
+      const passwordHash = await bcrypt.hash(rawPassword, 12);
 
       const user = await prisma.user.create({
         data: {
@@ -135,16 +141,19 @@ export async function createUser(req: Request, res: Response) {
           fullName,
           phone: phone || null,
           address: address || null,
+          course: course || null,
+          startDate: start,
           role: "STUDENT",
+          regStatus: "CONFIRMED", // HS vào học được ngay, không lặp lại vụ 22 bạn bị khoá
           isActive: true,
         },
         select: {
           id: true, email: true, studentCode: true, fullName: true,
-          phone: true, address: true, role: true, isActive: true, createdAt: true,
+          phone: true, address: true, course: true, role: true, isActive: true, createdAt: true,
         },
       });
 
-      return api.created(res, user, `Tạo học viên thành công. Mã HV: ${code}`);
+      return api.created(res, { ...user, password: rawPassword }, `Tạo học viên thành công. Mã HV: ${code}`);
     } else {
       // Staff: bắt buộc có email
       if (!email) return api.error(res, "Email bắt buộc cho tài khoản nhân sự");
@@ -175,7 +184,7 @@ export async function createUser(req: Request, res: Response) {
 export async function updateUser(req: Request<Params>, res: Response) {
   try {
     const id = req.params.id as string;
-    const { fullName, role, password, phone, address, email, testScore, regStatus } = req.body;
+    const { fullName, role, password, phone, address, email, testScore, regStatus, studentCode, course } = req.body;
 
     const existing = await prisma.user.findUnique({ where: { id } });
     if (!existing) return api.error(res, "Tài khoản không tồn tại", 404);
@@ -189,13 +198,22 @@ export async function updateUser(req: Request<Params>, res: Response) {
     if (email !== undefined) updateData.email = email || null;
     if (testScore !== undefined) updateData.testScore = testScore || null;
     if (regStatus !== undefined) updateData.regStatus = regStatus || null;
+    if (course !== undefined) updateData.course = course || null;
+
+    // Sửa mã HV sau khi tạo — kiểm trùng (trừ chính nó)
+    if (studentCode !== undefined && studentCode !== existing.studentCode) {
+      if (!studentCode) return api.error(res, "Mã học viên không được để trống");
+      const dup = await prisma.user.findUnique({ where: { studentCode } });
+      if (dup && dup.id !== id) return api.error(res, `Mã học viên ${studentCode} đã tồn tại`, 409);
+      updateData.studentCode = studentCode;
+    }
 
     const user = await prisma.user.update({
       where: { id },
       data: updateData,
       select: {
         id: true, email: true, studentCode: true, fullName: true,
-        phone: true, address: true, role: true, isActive: true, regStatus: true, createdAt: true,
+        phone: true, address: true, course: true, role: true, isActive: true, regStatus: true, createdAt: true,
       },
     });
 
@@ -247,11 +265,27 @@ export async function resetPassword(req: Request<Params>, res: Response) {
   }
 }
 
+// PATCH /api/users/bulk-reg-status — Đánh dấu "đã ghi danh" hàng loạt (mở khoá portal HS)
+export async function bulkSetRegStatus(req: Request, res: Response) {
+  try {
+    const { ids, regStatus } = req.body as { ids: string[]; regStatus: string };
+    if (!Array.isArray(ids) || ids.length === 0) return api.error(res, "Chưa chọn học viên");
+    if (!["CONFIRMED", "TEST", "PAID"].includes(regStatus)) return api.error(res, "Trạng thái không hợp lệ");
+    const result = await prisma.user.updateMany({
+      where: { id: { in: ids }, role: "STUDENT" },
+      data: { regStatus },
+    });
+    return api.success(res, { count: result.count }, `Đã cập nhật ${result.count} học viên`);
+  } catch (err) {
+    return api.error(res, "Lỗi server", 500);
+  }
+}
+
 // POST /api/users/bulk-create — Import hàng loạt (chỉ Student)
 export async function bulkCreateStudents(req: Request, res: Response) {
   try {
     const { students } = req.body;
-    // students: [{ fullName, email?, phone?, address?, password?, studentCode? }]
+    // students: [{ fullName, email?, phone?, address?, password?, studentCode?, course?, startDate? }]
 
     if (!Array.isArray(students) || students.length === 0) {
       return api.error(res, "Danh sách học viên không hợp lệ");
@@ -269,31 +303,32 @@ export async function bulkCreateStudents(req: Request, res: Response) {
         continue;
       }
 
-      // Kiểm tra trùng email
+      // Email tuỳ chọn — chỉ kiểm trùng nếu có (KHÔNG kiểm SĐT: anh em ruột dùng chung số bố mẹ)
       if (s.email) {
         const existingEmail = await prisma.user.findUnique({ where: { email: s.email } });
         if (existingEmail) {
-          results.errors.push(`Email đã tồn tại: ${s.email}`);
+          results.errors.push(`Email đã tồn tại: ${s.email} (${s.fullName})`);
           results.skipped++;
           continue;
         }
       }
 
-      // Kiểm tra trùng studentCode
+      // Mã HV: dùng mã admin đưa (kiểm trùng), không thì sinh theo công thức {tên}{lớp}{ddmmyy}
       let code = s.studentCode;
       if (code) {
         const existingCode = await prisma.user.findUnique({ where: { studentCode: code } });
         if (existingCode) {
-          results.errors.push(`Mã HV đã tồn tại: ${code}`);
+          results.errors.push(`Mã HV đã tồn tại: ${code} (${s.fullName})`);
           results.skipped++;
           continue;
         }
       } else {
-        code = await generateStudentCode();
+        const start = s.startDate ? new Date(s.startDate) : new Date();
+        code = await generateUniqueStudentCode(s.fullName, s.course, start);
       }
 
-      const password = s.password || "Student@123";
-      const passwordHash = await bcrypt.hash(password, 12);
+      const rawPassword = s.password || (s.phone && String(s.phone).trim()) || "Student@123";
+      const passwordHash = await bcrypt.hash(rawPassword, 12);
 
       const user = await prisma.user.create({
         data: {
@@ -303,35 +338,22 @@ export async function bulkCreateStudents(req: Request, res: Response) {
           fullName: s.fullName,
           phone: s.phone || null,
           address: s.address || null,
+          course: s.course || null,
+          startDate: s.startDate ? new Date(s.startDate) : new Date(),
           role: "STUDENT",
+          regStatus: "CONFIRMED",
           isActive: true,
         },
         select: { id: true, studentCode: true, fullName: true },
       });
 
-      results.createdStudents.push({ studentCode: code, fullName: s.fullName, password });
+      results.createdStudents.push({ studentCode: code, fullName: s.fullName, password: rawPassword });
       results.created++;
     }
 
     return api.success(res, results, `Đã tạo ${results.created} tài khoản, bỏ qua ${results.skipped}`);
   } catch (err) {
     console.error("Bulk create error:", err);
-    return api.error(res, "Lỗi server", 500);
-  }
-}
-
-// PATCH /api/users/bulk-reg-status — Đánh dấu "đã ghi danh" hàng loạt (mở khoá portal HS)
-export async function bulkSetRegStatus(req: Request, res: Response) {
-  try {
-    const { ids, regStatus } = req.body as { ids: string[]; regStatus: string };
-    if (!Array.isArray(ids) || ids.length === 0) return api.error(res, "Chưa chọn học viên");
-    if (!["CONFIRMED", "TEST", "PAID"].includes(regStatus)) return api.error(res, "Trạng thái không hợp lệ");
-    const result = await prisma.user.updateMany({
-      where: { id: { in: ids }, role: "STUDENT" },
-      data: { regStatus },
-    });
-    return api.success(res, { count: result.count }, `Đã cập nhật ${result.count} học viên`);
-  } catch (err) {
     return api.error(res, "Lỗi server", 500);
   }
 }
