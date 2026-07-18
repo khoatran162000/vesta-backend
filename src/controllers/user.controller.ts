@@ -61,7 +61,7 @@ export async function listUsers(req: Request, res: Response) {
         select: {
           id: true, email: true, studentCode: true, fullName: true,
           phone: true, address: true, cccd: true, course: true, testScore: true,
-          role: true, avatarUrl: true, isActive: true, createdAt: true,
+          role: true, avatarUrl: true, isActive: true, regStatus: true, createdAt: true,
         },
       }),
       prisma.user.count({ where }),
