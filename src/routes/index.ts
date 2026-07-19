@@ -9,7 +9,6 @@ import questionRoutes from "./question.routes";
 import attemptRoutes from "./attempt.routes";
 import notificationRoutes from "./notification.routes";
 import studentRoutes from "./student.routes";
-import registerRoutes from "./register.routes";
 import classContentRoutes from "./classContent.routes";
 import consultationRoutes from "./consultation.routes";
 import interactiveRoutes from "./interactive.routes";
@@ -22,9 +21,7 @@ import bookRoutes from "./book.routes";
 import siteContentRoutes from "./siteContent.routes";
 import classRoutes from "./class.routes";
 import levelRoutes from "./level.routes";
-
 const router = Router();
-
 router.use("/auth", authRoutes);
 router.use("/posts", postRoutes);
 router.use("/users", userRoutes);
@@ -34,7 +31,6 @@ router.use("/questions", questionRoutes);
 router.use("/attempts", attemptRoutes);
 router.use("/notifications", notificationRoutes);
 router.use("/student", studentRoutes);
-router.use("/register", registerRoutes);
 router.use("/class", classContentRoutes);
 router.use("/consultation", consultationRoutes);
 router.use("/interactive", interactiveRoutes);
@@ -47,9 +43,7 @@ router.use("/books", bookRoutes);
 router.use("/site-content", siteContentRoutes);
 router.use("/classes", classRoutes);
 router.use("/levels", levelRoutes);
-
 router.get("/health", (_req, res) => {
   res.json({ status: "ok", timestamp: new Date().toISOString() });
 });
-
 export default router;
