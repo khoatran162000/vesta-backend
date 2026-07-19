@@ -3,6 +3,7 @@
 import { Request, Response } from "express";
 import prisma from "../config/database";
 import * as api from "../utils/apiResponse";
+import { computeStudentProgress } from "../lib/studentProgress";
 
 type Params = { [key: string]: string };
 
@@ -48,6 +49,18 @@ export async function getDashboard(req: Request, res: Response) {
       unreadNotifications,
     });
   } catch (err) {
+    return api.error(res, "Lỗi server", 500);
+  }
+}
+
+// GET /api/student/progress — Bảng tiến độ HS tự xem (hệ thống tự điền %)
+export async function getProgress(req: Request, res: Response) {
+  try {
+    const studentId = req.user!.userId;
+    const data = await computeStudentProgress(studentId);
+    return api.success(res, data);
+  } catch (err) {
+    console.error("Get progress error:", err);
     return api.error(res, "Lỗi server", 500);
   }
 }

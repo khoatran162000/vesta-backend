@@ -11,6 +11,7 @@ router.use(authenticate);
 
 // ─── Dashboard ───
 router.get("/dashboard", student.getDashboard);
+router.get("/progress", student.getProgress);
 
 // ─── Exam Browsing ───
 router.get("/categories", student.getCategories);
