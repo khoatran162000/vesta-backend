@@ -357,3 +357,73 @@ export async function bulkCreateStudents(req: Request, res: Response) {
     return api.error(res, "Lỗi server", 500);
   }
 }
+
+// Đếm dữ liệu học tập của 1 HS — có bất kỳ cái nào thì KHÔNG cho xoá hẳn (dùng Ẩn thay thế)
+async function studentLearningData(userId: string) {
+  const [exams, feedbacks, interactives] = await Promise.all([
+    prisma.examAttempt.count({ where: { studentId: userId } }),
+    prisma.feedback.count({ where: { studentId: userId } }),
+    prisma.interactiveAttempt.count({ where: { studentId: userId } }),
+  ]);
+  return { exams, feedbacks, interactives, total: exams + feedbacks + interactives };
+}
+
+// DELETE /api/users/:id/hard — Xoá VĨNH VIỄN 1 học viên (chỉ khi chưa có dữ liệu học)
+export async function deleteUserHard(req: Request<Params>, res: Response) {
+  try {
+    const id = req.params.id as string;
+    const existing = await prisma.user.findUnique({ where: { id } });
+    if (!existing) return api.error(res, "Tài khoản không tồn tại", 404);
+    if (existing.role !== "STUDENT") return api.error(res, "Chỉ được xoá hẳn tài khoản học viên", 400);
+    if (id === req.user!.userId) return api.error(res, "Không thể xoá tài khoản của chính mình", 400);
+
+    const data = await studentLearningData(id);
+    if (data.total > 0) {
+      return api.error(res,
+        `Không thể xoá hẳn: học viên đã có ${data.exams} lượt thi, ${data.feedbacks} bài chấm, ${data.interactives} lượt bài tập. Hãy dùng "Ẩn học viên" để giữ lại dữ liệu.`,
+        409);
+    }
+
+    // Sạch dữ liệu học → xoá Notification + InteractiveAttempt rỗng (Restrict/SetNull) rồi xoá user.
+    // WeeklyReport/FinalReport/ClassEnrollment tự Cascade.
+    await prisma.$transaction([
+      prisma.notification.deleteMany({ where: { userId: id } }),
+      prisma.interactiveAttempt.deleteMany({ where: { studentId: id } }),
+      prisma.user.delete({ where: { id } }),
+    ]);
+    return api.success(res, { id }, `Đã xoá vĩnh viễn học viên ${existing.fullName}`);
+  } catch (err) {
+    console.error("Delete user hard error:", err);
+    return api.error(res, "Lỗi server", 500);
+  }
+}
+
+// POST /api/users/bulk-delete — Xoá VĨNH VIỄN nhiều HS (bỏ qua HS có dữ liệu học)
+export async function bulkDeleteUsers(req: Request, res: Response) {
+  try {
+    const { ids } = req.body as { ids: string[] };
+    if (!Array.isArray(ids) || ids.length === 0) return api.error(res, "Chưa chọn học viên");
+
+    const result = { deleted: 0, skipped: 0, skippedNames: [] as string[] };
+    for (const id of ids) {
+      if (id === req.user!.userId) { result.skipped++; continue; }
+      const u = await prisma.user.findUnique({ where: { id }, select: { id: true, fullName: true, role: true } });
+      if (!u || u.role !== "STUDENT") { result.skipped++; continue; }
+      const data = await studentLearningData(id);
+      if (data.total > 0) { result.skipped++; result.skippedNames.push(u.fullName); continue; }
+      await prisma.$transaction([
+        prisma.notification.deleteMany({ where: { userId: id } }),
+        prisma.interactiveAttempt.deleteMany({ where: { studentId: id } }),
+        prisma.user.delete({ where: { id } }),
+      ]);
+      result.deleted++;
+    }
+    const msg = result.skipped > 0
+      ? `Đã xoá ${result.deleted} học viên. Bỏ qua ${result.skipped} (đã có dữ liệu học hoặc không hợp lệ).`
+      : `Đã xoá ${result.deleted} học viên.`;
+    return api.success(res, result, msg);
+  } catch (err) {
+    console.error("Bulk delete error:", err);
+    return api.error(res, "Lỗi server", 500);
+  }
+}
