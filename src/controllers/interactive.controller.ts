@@ -4,6 +4,7 @@ import { Request, Response } from "express";
 import { PrismaClient, Prisma } from "@prisma/client";
 import { gradeGaps, normalizeGaps, stripGapAnswers } from "../utils/gradeGaps";
 const prisma = new PrismaClient();
+import { refreshStudyFlag } from "../lib/studentProgress";
 
 function uid(req: Request): string | undefined {
   return (req as any).user?.userId;
@@ -262,6 +263,8 @@ export const submitExercise = async (req: Request, res: Response) => {
         detail: result.detail,
       },
     });
+    // Vừa nộp bài — nếu đủ 4 bài ≥85% thì gỡ cờ/khoá NGAY (không đợi cron CN)
+    if (studentId) { try { await refreshStudyFlag(studentId); } catch {} }
     return res.json({ success: true, data: { ...attempt, correct: result.correct, total: result.total, detail: result.detail } });
   } catch (error) {
     return res.status(500).json({ success: false, message: "Lỗi nộp bài" });

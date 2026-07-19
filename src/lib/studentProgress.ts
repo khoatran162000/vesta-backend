@@ -136,3 +136,20 @@ export async function computeStudentProgress(studentId: string) {
     },
   };
 }
+
+// Gỡ cờ/khoá NGAY khi HS vừa làm đủ 4 bài ≥85% (gọi sau submitExercise — luật "làm bù → active lại")
+export async function refreshStudyFlag(studentId: string): Promise<void> {
+  const passed = await countDistinctPassed(studentId, 85, 7);
+  if (passed >= 4) {
+    const u = await prisma.user.findUnique({
+      where: { id: studentId },
+      select: { studyFlag: true, lockedAt: true },
+    });
+    if (u && (u.studyFlag || u.lockedAt)) {
+      await prisma.user.update({
+        where: { id: studentId },
+        data: { studyFlag: false, flaggedAt: null, lockedAt: null },
+      });
+    }
+  }
+}
