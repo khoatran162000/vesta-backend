@@ -54,6 +54,10 @@ model User {
   role         Role
   avatarUrl    String?
   isActive     Boolean  @default(true)
+  studyFlag    Boolean   @default(false)   // cron cắm cờ: thiếu bài tuần qua (HS vẫn học)
+  flaggedAt    DateTime?                    // thời điểm cắm cờ — để tính mốc 3 ngày
+  lockedAt     DateTime?                    // cron/admin khoá tạm sau 3 ngày không bù
+  lastFlagCheck DateTime?                   // tuần gần nhất đã quét (chạy bù nếu server restart lỡ nhịp)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
   // Relations
