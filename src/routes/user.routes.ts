@@ -30,6 +30,7 @@ router.put("/:id", authorize("ADMIN"), user.updateUser);
 router.patch("/:id/toggle-status", authorize("ADMIN"), user.toggleStatus);
 router.post("/:id/reset-password", authorize("ADMIN"), user.resetPassword);
 router.delete("/:id/hard", authorize("ADMIN"), user.deleteUserHard);
+router.patch("/:id/unlock", authorize("ADMIN"), user.unlockStudent);
 
 // Admin import học viên từ CSV
 router.post("/import-csv", authenticate, authorize("ADMIN"), uploadCSV, importStudentsFromCSV);

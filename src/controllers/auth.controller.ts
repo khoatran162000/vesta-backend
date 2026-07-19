@@ -53,6 +53,8 @@ export async function login(req: Request, res: Response) {
         avatarUrl: user.avatarUrl,
         course: user.course,           // ← THÊM
         regStatus: user.regStatus,     // ← THÊM
+        studyFlag: user.studyFlag,
+        lockedAt: user.lockedAt,
       },
     });
   } catch (err) {
@@ -94,6 +96,8 @@ export async function getMe(req: Request, res: Response) {
         // ─── THÊM FIELDS HỌC VIÊN ───
         course: true,
         regStatus: true,
+        studyFlag: true,
+        lockedAt: true,
         studyMode: true,
         cccd: true,
         startDate: true,

@@ -62,7 +62,7 @@ export async function listUsers(req: Request, res: Response) {
         select: {
           id: true, email: true, studentCode: true, fullName: true,
           phone: true, address: true, cccd: true, course: true, testScore: true,
-          role: true, avatarUrl: true, isActive: true, regStatus: true, createdAt: true,
+          role: true, avatarUrl: true, isActive: true, regStatus: true, studyFlag: true, lockedAt: true, createdAt: true,
         },
       }),
       prisma.user.count({ where }),
@@ -424,6 +424,22 @@ export async function bulkDeleteUsers(req: Request, res: Response) {
     return api.success(res, result, msg);
   } catch (err) {
     console.error("Bulk delete error:", err);
+    return api.error(res, "Lỗi server", 500);
+  }
+}
+
+// PATCH /api/users/:id/unlock — Admin mở khoá tạm (gỡ cờ + khoá) cho 1 HS
+export async function unlockStudent(req: Request<Params>, res: Response) {
+  try {
+    const id = req.params.id as string;
+    const existing = await prisma.user.findUnique({ where: { id } });
+    if (!existing) return api.error(res, "Tài khoản không tồn tại", 404);
+    await prisma.user.update({
+      where: { id },
+      data: { studyFlag: false, flaggedAt: null, lockedAt: null },
+    });
+    return api.success(res, { id }, `Đã mở khoá cho ${existing.fullName}`);
+  } catch (err) {
     return api.error(res, "Lỗi server", 500);
   }
 }
