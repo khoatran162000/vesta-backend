@@ -204,7 +204,7 @@ export const updateEnrollment = async (req: Request, res: Response) => {
     const classId = String(req.params.id);
     const studentId = String(req.params.studentId);
     const { status } = req.body;
-    const allowed = ["STUDYING", "COMPLETED", "LEFT"];
+    const allowed = ["STUDYING", "COMPLETED", "TESTED", "RESERVED", "LEFT"];
     if (!allowed.includes(status)) return res.status(400).json({ success: false, message: "Trạng thái không hợp lệ" });
     await prisma.classEnrollment.updateMany({ where: { classId, studentId }, data: { status } });
     return res.json({ success: true, message: "Đã cập nhật trạng thái" });
