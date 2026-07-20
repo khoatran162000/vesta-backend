@@ -189,6 +189,7 @@ model Notification {
   message   String           @db.Text
   isRead    Boolean          @default(false)
   type      NotificationType
+  link      String?
   createdAt DateTime         @default(now())
   @@index([userId])
   @@index([userId, isRead])

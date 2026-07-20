@@ -116,6 +116,23 @@ export const getReport = async (req: Request, res: Response) => {
   }
 };
 
+// Đẩy thông báo cho HS khi báo cáo được công bố (PUBLISHED)
+async function notifyReportPublished(studentId: string, reportId: string, course: string | null) {
+  try {
+    await prisma.notification.create({
+      data: {
+        userId: studentId,
+        title: "Báo cáo tuần mới",
+        message: `Giáo viên đã gửi báo cáo tiến độ${course ? ` lớp ${course}` : ""}. Bấm để xem chi tiết.`,
+        type: "SYSTEM_AUTO",
+        link: `/bao-cao/${reportId}`,
+      },
+    });
+  } catch (e) {
+    console.error("notifyReportPublished error:", e);
+  }
+}
+
 // ─── Create (staff) ───
 export const createReport = async (req: Request, res: Response) => {
   try {
@@ -147,6 +164,9 @@ export const createReport = async (req: Request, res: Response) => {
         createdBy: userId!,
       },
     });
+    if (report.status === "PUBLISHED") {
+      await notifyReportPublished(report.studentId, report.id, report.course ?? null);
+    }
     const shareUrl = report.html && report.shareToken ? shareUrlFor(req, report.shareToken) : null;
     return res.status(201).json({ success: true, data: { ...report, shareUrl } });
   } catch (error) {
@@ -174,9 +194,15 @@ export const updateReport = async (req: Request, res: Response) => {
     if (teacherNote !== undefined) data.teacherNote = teacherNote as any;
     if (html !== undefined) data.html = html;
     if (status !== undefined) data.status = status === "PUBLISHED" ? "PUBLISHED" : "DRAFT";
-    const existing = await prisma.weeklyReport.findUnique({ where: { id }, select: { shareToken: true } });
+    const existing = await prisma.weeklyReport.findUnique({
+      where: { id },
+      select: { shareToken: true, status: true },
+    });
     if (existing && !existing.shareToken) data.shareToken = genToken();
     const report = await prisma.weeklyReport.update({ where: { id }, data });
+    if (report.status === "PUBLISHED" && existing?.status !== "PUBLISHED") {
+      await notifyReportPublished(report.studentId, report.id, report.course ?? null);
+    }
     const shareUrl = report.html && report.shareToken ? shareUrlFor(req, report.shareToken) : null;
     return res.json({ success: true, data: { ...report, shareUrl } });
   } catch (error) {
