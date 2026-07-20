@@ -128,6 +128,7 @@ model Exam {
   description String?    @db.Text
   duration    Int
   totalScore  Float
+  maxAttempts Int?    // số lượt được CHẤM ĐIỂM; null = không giới hạn
   status      ExamStatus @default(DRAFT)
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
@@ -169,6 +170,8 @@ model ExamAttempt {
   answers      Json?
   studentNotes Json?
   score        Float?
+  isGraded      Boolean @default(true)   // false = lượt vượt maxAttempts (ôn tập)
+  autoSubmitted Boolean @default(false)  // true = hết giờ tự nộp / nộp trễ
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
   @@index([studentId])
@@ -267,6 +270,8 @@ model InteractiveExercise {
   visibleTo   String?  @db.Text
   isPublished Boolean  @default(false)
   orderIndex  Int      @default(0)
+  timeLimit   Int?    // phút; null = không giới hạn giờ
+  maxAttempts Int?    // số lượt được chấm; null = không giới hạn
   createdBy   String
   creator     User     @relation("ExerciseCreator", fields: [createdBy], references: [id])
   attempts    InteractiveAttempt[]
@@ -283,10 +288,14 @@ model InteractiveAttempt {
   exercise    InteractiveExercise @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
   studentId   String?
   student     User?    @relation("InteractiveAttemptStudent", fields: [studentId], references: [id])
-  answers     Json
+  answers     Json?
   score       Float?
   totalScore  Float?
   detail      Json?
+  startTime     DateTime?               // set khi HS bắt đầu (chỉ bài có tính giờ)
+  status        String   @default("SUBMITTED")  // IN_PROGRESS khi mở phiên; SUBMITTED khi nộp
+  isGraded      Boolean  @default(true)
+  autoSubmitted Boolean  @default(false)
   createdAt   DateTime @default(now())
   @@index([exerciseId])
   @@index([studentId])
