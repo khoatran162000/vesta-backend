@@ -1,5 +1,6 @@
 // FILE: src/utils/gradeGaps.ts
 // Chấm điểm cho bài tập kiểu LearnClick (gap fill / dropdown / drag&drop)
+import { buildDropdownOptions, collectCorrectAnswers } from "./autoDistractors";
 
 export type GapType = "TEXT" | "DROPDOWN" | "DRAG";
 
@@ -120,17 +121,29 @@ export function gradeGaps(gaps: any, answers: any): GradeResult {
 /**
  * Ẩn đáp án trong gaps khi trả về cho người ĐANG làm bài.
  * Giữ type + options (dropdown cần options để render), bỏ answers.
+ * DROPDOWN không có options nhập tay → TỰ SINH đáp án nhiễu (auto-distractor).
  */
 export function stripGapAnswers(gaps: any): any {
   if (!gaps || typeof gaps !== "object") return gaps;
+  const norm = normalizeGaps(gaps); // đảm bảo answers là mảng đã tách #
+  // Kho đáp án đúng của mọi gap (dùng làm nguồn nhiễu chéo)
+  const allCorrect = collectCorrectAnswers(norm);
   const out: Record<string, any> = {};
-  for (const [id, g] of Object.entries<any>(gaps)) {
+  for (const [id, g] of Object.entries(norm)) {
     if (g.type === "DRAG") {
-      // DRAG: giữ answers để client dựng "ngân hàng từ" để kéo (giống LearnClick).
-      // Cái giấu là "từ nào đúng ô nào", không phải tập từ hiện ra.
       out[id] = { type: "DRAG", answers: Array.isArray(g.answers) ? g.answers : [] };
     } else if (g.type === "DROPDOWN") {
-      out[id] = { type: "DROPDOWN", ...(Array.isArray(g.options) ? { options: g.options } : {}) };
+      if (Array.isArray(g.options) && g.options.length > 0) {
+        // Chị đã nhập tay lựa chọn → tôn trọng, giữ nguyên
+        out[id] = { type: "DROPDOWN", options: g.options };
+      } else {
+        // Auto-distractor: sinh 4 lựa chọn từ đáp án gap khác + ngân hàng chung
+        const correct = g.answers[0] || "";
+        const pool = Object.entries(allCorrect)
+          .filter(([gid]) => gid !== id)
+          .map(([, v]) => v);
+        out[id] = { type: "DROPDOWN", options: buildDropdownOptions(correct, pool) };
+      }
     } else {
       out[id] = { type: g.type || "TEXT" };
     }
