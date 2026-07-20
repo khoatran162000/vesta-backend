@@ -6,9 +6,10 @@ export type GapType = "TEXT" | "DROPDOWN" | "DRAG";
 
 export interface GapDef {
   type: GapType;
-  answers: string[];        // các đáp án đúng (đã tách từ dấu #)
-  options?: string[];       // cho DROPDOWN: danh sách lựa chọn
-  caseSensitive?: boolean;  // mặc định false
+  answers: string[];
+  options?: string[];
+  caseSensitive?: boolean;
+  hint?: string;
 }
 
 export type GapMap = Record<string, GapDef>;
@@ -79,6 +80,7 @@ export function normalizeGaps(gaps: any): GapMap {
       answers,
       options: Array.isArray(g.options) ? g.options : undefined,
       caseSensitive: !!g.caseSensitive,
+      ...(g.hint ? { hint: String(g.hint) } : {}),
     };
   }
   return out;
@@ -119,34 +121,48 @@ export function gradeGaps(gaps: any, answers: any): GradeResult {
 }
 
 /**
+ * Gợi ý tự động từ đáp án: chữ cái đầu + số chữ cái.
+ * VD "increased" → "i________ (9 chữ)".  "in front of" → "i__ f____ o_ (3 từ)".
+ */
+function autoHint(answer: string): string {
+  const a = String(answer || "").trim();
+  if (!a) return "";
+  const tokens = a.split(/\s+/);
+  if (tokens.length > 1) {
+    const masked = tokens.map((w) => w[0] + "_".repeat(Math.max(0, w.length - 1))).join(" ");
+    return `${masked} (${tokens.length} từ)`;
+  }
+  return `${a[0]}${"_".repeat(Math.max(0, a.length - 1))} (${a.length} chữ)`;
+}
+
+/**
  * Ẩn đáp án trong gaps khi trả về cho người ĐANG làm bài.
  * Giữ type + options (dropdown cần options để render), bỏ answers.
  * DROPDOWN không có options nhập tay → TỰ SINH đáp án nhiễu (auto-distractor).
  */
 export function stripGapAnswers(gaps: any): any {
   if (!gaps || typeof gaps !== "object") return gaps;
-  const norm = normalizeGaps(gaps); // đảm bảo answers là mảng đã tách #
-  // Kho đáp án đúng của mọi gap (dùng làm nguồn nhiễu chéo)
+  const norm = normalizeGaps(gaps);
   const allCorrect = collectCorrectAnswers(norm);
   const out: Record<string, any> = {};
   for (const [id, g] of Object.entries(norm)) {
+    // Gợi ý: ưu tiên hint tay; trống thì tự sinh từ đáp án đầu tiên
+    const hint = (g as any).hint?.trim() ? (g as any).hint.trim() : autoHint(g.answers[0] || "");
     if (g.type === "DRAG") {
-      out[id] = { type: "DRAG", answers: Array.isArray(g.answers) ? g.answers : [] };
+      out[id] = { type: "DRAG", answers: Array.isArray(g.answers) ? g.answers : [], hint };
     } else if (g.type === "DROPDOWN") {
       if (Array.isArray(g.options) && g.options.length > 0) {
-        // Chị đã nhập tay lựa chọn → tôn trọng, giữ nguyên
-        out[id] = { type: "DROPDOWN", options: g.options };
+        out[id] = { type: "DROPDOWN", options: g.options, hint };
       } else {
-        // Auto-distractor: sinh 4 lựa chọn từ đáp án gap khác + ngân hàng chung
         const correct = g.answers[0] || "";
         const pool = Object.entries(allCorrect)
           .filter(([gid]) => gid !== id)
           .map(([, v]) => v);
-        out[id] = { type: "DROPDOWN", options: buildDropdownOptions(correct, pool) };
+        out[id] = { type: "DROPDOWN", options: buildDropdownOptions(correct, pool), hint };
       }
     } else {
-      out[id] = { type: g.type || "TEXT" };
+      out[id] = { type: g.type || "TEXT", hint };
     }
   }
   return out;
-}
+}                               
