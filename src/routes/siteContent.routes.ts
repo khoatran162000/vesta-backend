@@ -2,7 +2,7 @@
 import { Router } from "express";
 import { authenticate } from "../middlewares/auth.middleware";
 import { authorize } from "../middlewares/role.middleware";
-import { uploadThumbnail } from "../middlewares/upload.middleware";
+import { uploadSiteFiles } from "../middlewares/upload.middleware";
 import * as sc from "../controllers/siteContent.controller";
 
 const router = Router();
@@ -11,6 +11,6 @@ const cmsRoles = ["ADMIN", "CONTENT_CREATOR"];
 
 router.get("/", sc.listSiteContent);
 router.get("/:key", sc.getSiteContent);
-router.put("/:key", authenticate, authorize(...cmsRoles), uploadThumbnail, sc.upsertSiteContent);
+router.put("/:key", authenticate, authorize(...cmsRoles), uploadSiteFiles, sc.upsertSiteContent);
 
 export default router;

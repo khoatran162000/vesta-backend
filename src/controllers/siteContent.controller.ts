@@ -34,16 +34,24 @@ export const getSiteContent = async (req: Request, res: Response) => {
 export const upsertSiteContent = async (req: Request, res: Response) => {
   try {
     const key = String(req.params.key);
-    const dataField = req.file
-      ? { ...parseJsonField(req.body.data, {}), qrFromFile: `/uploads/blog/${req.file.filename}` } // trường hợp có upload
-      : parseJsonField(req.body.data, {});
     const label = req.body.label || key;
-
-    // Nếu upload QR: gắn qrUrl vào data.bank
     let finalData: any = parseJsonField(req.body.data, {});
-    if (req.file) {
-      finalData = { ...finalData, bank: { ...(finalData.bank || {}), qrUrl: `/uploads/blog/${req.file.filename}` } };
+
+    // req.files từ multer.fields → object { fieldname: File[] }
+    const files = (req.files as Record<string, Express.Multer.File[]>) || {};
+    const pick = (name: string) => files?.[name]?.[0];
+
+    // Khối tuition: upload QR ngân hàng (field "thumbnail") — GIỮ NGUYÊN
+    const qrFile = pick("thumbnail");
+    if (qrFile) {
+      finalData = { ...finalData, bank: { ...(finalData.bank || {}), qrUrl: `/uploads/blog/${qrFile.filename}` } };
     }
+
+    // Khối logo: upload logo + favicon (fields "logo", "favicon")
+    const logoFile = pick("logo");
+    const faviconFile = pick("favicon");
+    if (logoFile) finalData = { ...finalData, logoUrl: `/uploads/logo/${logoFile.filename}` };
+    if (faviconFile) finalData = { ...finalData, faviconUrl: `/uploads/logo/${faviconFile.filename}` };
 
     const item = await prisma.siteContent.upsert({
       where: { key },
