@@ -3,50 +3,49 @@ import { runWeeklyStudyCheck } from "./weeklyStudyCheck";
 import prisma from "../config/database";
 
 const HOUR = 3600 * 1000;
+const CYCLE_DAYS = 3; // chu kỳ quét tiến độ (chốt: 3 ngày/lần)
 
-// Đầu tuần này (thứ 2 00:00) — mốc để biết tuần này đã quét chưa
-function startOfWeek(d = new Date()): Date {
-  const x = new Date(d);
-  const day = (x.getDay() + 6) % 7; // T2=0 ... CN=6
-  x.setHours(0, 0, 0, 0);
-  x.setDate(x.getDate() - day);
-  return x;
-}
-
-// Tuần này đã quét chưa? (nhìn lastFlagCheck mới nhất trong toàn bộ HS)
-async function alreadyRanThisWeek(): Promise<boolean> {
+// Lần quét gần nhất (nhìn lastFlagCheck mới nhất trong toàn bộ HS)
+async function lastRunAt(): Promise<Date | null> {
   const latest = await prisma.user.findFirst({
     where: { role: "STUDENT", lastFlagCheck: { not: null } },
     orderBy: { lastFlagCheck: "desc" },
     select: { lastFlagCheck: true },
   });
-  return !!latest?.lastFlagCheck && latest.lastFlagCheck >= startOfWeek();
+  return latest?.lastFlagCheck ?? null;
+}
+
+// Đã tới hạn quét chu kỳ chưa? (>= CYCLE_DAYS kể từ lần quét gần nhất)
+async function dueForCycle(): Promise<boolean> {
+  const last = await lastRunAt();
+  if (!last) return true; // chưa quét bao giờ → quét luôn
+  const daysSince = (Date.now() - last.getTime()) / 86400000;
+  return daysSince >= CYCLE_DAYS;
 }
 
 export function startScheduler() {
-  // 1) CHẠY BÙ khi khởi động: nếu tuần này chưa quét (server restart lỡ nhịp CN) → quét ngay.
+  // 1) CHẠY BÙ khi khởi động: nếu tới hạn chu kỳ → quét ngay.
   setTimeout(async () => {
     try {
-      if (!(await alreadyRanThisWeek())) {
-        console.log("[Scheduler] Tuần này chưa quét — chạy bù ngay...");
+      if (await dueForCycle()) {
+        console.log("[Scheduler] Tới hạn chu kỳ — chạy quét tiến độ ngay...");
         await runWeeklyStudyCheck();
       } else {
-        console.log("[Scheduler] Tuần này đã quét, bỏ qua chạy bù.");
+        console.log("[Scheduler] Chưa tới hạn chu kỳ, bỏ qua chạy bù.");
       }
     } catch (e) { console.error("[Scheduler] Lỗi chạy bù:", e); }
   }, 15000);
 
-  // 2) Kiểm tra mỗi giờ: đúng tối Chủ nhật (>=20h) và tuần này chưa quét → chạy.
+  // 2) Kiểm tra mỗi giờ: tới hạn chu kỳ (>= 3 ngày) + giờ hợp lý (>=20h) → chạy quét tiến độ.
   setInterval(async () => {
     try {
       const now = new Date();
-      const isSundayNight = now.getDay() === 0 && now.getHours() >= 20;
-      if (isSundayNight && !(await alreadyRanThisWeek())) {
-        console.log("[Scheduler] Tối Chủ nhật — chạy quét tuần...");
+      if (now.getHours() >= 20 && (await dueForCycle())) {
+        console.log("[Scheduler] Tới hạn chu kỳ 3 ngày — chạy quét tiến độ...");
         await runWeeklyStudyCheck();
       }
-    } catch (e) { console.error("[Scheduler] Lỗi cron:", e); }
+    } catch (e) { console.error("[Scheduler] Lỗi cron tiến độ:", e); }
   }, HOUR);
 
-  console.log("[Scheduler] Đã đăng ký: weeklyStudyCheck (tối CN, có chạy bù khi khởi động)");
+  console.log("[Scheduler] Đã đăng ký: quét tiến độ (3 ngày/lần, có chạy bù khi khởi động)");
 }

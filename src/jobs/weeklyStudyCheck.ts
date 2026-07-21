@@ -5,10 +5,10 @@
 import prisma from "../config/database";
 import { countDistinctPassed } from "../lib/studentProgress";
 
-const REQUIRED = 4;       // số bài khác nhau
+const REQUIRED = 3;       // số bài khác nhau (chốt: 3 bài/3 ngày)
 const THRESHOLD = 85;     // %
-const WINDOW_DAYS = 7;    // cửa sổ đếm
-const GRACE_DAYS = 3;     // số ngày làm bù sau khi cắm cờ
+const WINDOW_DAYS = 3;    // cửa sổ đếm (đổi tuần → 3 ngày)
+const GRACE_DAYS = 2;     // số ngày làm bù sau khi cắm cờ
 
 const isPaid = (regStatus: string | null) => regStatus === "CONFIRMED" || regStatus === "PAID";
 
@@ -54,7 +54,7 @@ export async function runWeeklyStudyCheck(): Promise<{ flagged: number; locked: 
         data: {
           userId: s.id,
           title: "⚠️ Nhắc nhở hoàn thành bài tập",
-          message: `Tuần qua bạn mới hoàn thành ${passed}/${REQUIRED} bài tập đạt ${THRESHOLD}%. Hãy làm đủ trong ${GRACE_DAYS} ngày tới, nếu không tài khoản sẽ bị tạm khoá phần học.`,
+          message: `3 ngày qua bạn mới hoàn thành ${passed}/${REQUIRED} bài tập đạt ${THRESHOLD}%. Hãy làm đủ trong ${GRACE_DAYS} ngày tới, nếu không tài khoản sẽ bị tạm khoá phần học.`,
           type: "SYSTEM_AUTO",
         },
       });
