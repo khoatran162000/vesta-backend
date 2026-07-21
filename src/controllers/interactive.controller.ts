@@ -462,3 +462,33 @@ export const getExerciseAttempts = async (req: Request, res: Response) => {
     return res.status(500).json({ success: false, message: e.message });
   }
 };
+
+// GET /api/interactive/open-no-work-stats — Admin: HS mở-không-làm trong hôm nay
+export const openNoWorkStats = async (_req: Request, res: Response) => {
+  try {
+    const dayStart = new Date(); dayStart.setHours(0, 0, 0, 0);
+    const views = await prisma.exerciseView.findMany({
+      where: { openedAt: { gte: dayStart }, interacted: false },
+      select: { studentId: true, exerciseId: true },
+    });
+    // Gom theo HS: đếm số bài KHÁC NHAU mở-không-làm
+    const map = new Map<string, Set<string>>();
+    for (const v of views) {
+      if (!map.has(v.studentId)) map.set(v.studentId, new Set());
+      map.get(v.studentId)!.add(v.exerciseId);
+    }
+    const studentIds = [...map.keys()];
+    if (studentIds.length === 0) return res.json({ success: true, data: [] });
+    const users = await prisma.user.findMany({
+      where: { id: { in: studentIds } },
+      select: { id: true, fullName: true, email: true, studyFlag: true, lockedAt: true },
+    });
+    const data = users.map((u) => ({
+      ...u,
+      openedNoWork: map.get(u.id)?.size ?? 0,
+    })).sort((a, b) => b.openedNoWork - a.openedNoWork);
+    return res.json({ success: true, data });
+  } catch {
+    return res.status(500).json({ success: false, message: "Lỗi thống kê" });
+  }
+};

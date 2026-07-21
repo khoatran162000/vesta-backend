@@ -8,6 +8,7 @@ const router = Router();
 const staff = ["ADMIN", "TEACHER"];
 // Public: list (filter theo role nếu đã login)
 router.get("/", optionalAuthenticate, ix.listExercises);
+router.get("/open-no-work-stats", authenticate, authorize(...staff), ix.openNoWorkStats);
 router.get("/:id", optionalAuthenticate, ix.getExercise);
 router.post("/:id/check", ix.checkExercisePublic);  // Public chấm bài không lưu (khách)
 // Student: start (bài có timer/giới hạn lượt) + submit + xem attempts
