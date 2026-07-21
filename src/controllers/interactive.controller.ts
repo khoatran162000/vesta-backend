@@ -303,6 +303,20 @@ export const startExercise = async (req: Request, res: Response) => {
     return res.status(500).json({ success: false, message: "Lỗi bắt đầu bài" });
   }
 };
+
+// POST /api/interactive/:id/view — ghi nhận HS MỞ bài (đếm mở-không-làm)
+export const recordView = async (req: Request, res: Response) => {
+  try {
+    const studentId = uid(req);
+    if (!studentId) return res.json({ success: true });
+    const exerciseId = String(req.params.id);
+    await prisma.exerciseView.create({ data: { studentId, exerciseId } });
+    return res.json({ success: true });
+  } catch {
+    return res.json({ success: true });
+  }
+};
+
 // ─── Student submit (CÓ lưu) — hỗ trợ cả 2-phase (kèm attemptId) lẫn one-shot cũ ───
 export const submitExercise = async (req: Request, res: Response) => {
   try {
@@ -311,6 +325,16 @@ export const submitExercise = async (req: Request, res: Response) => {
     const { answers, attemptId } = req.body;
     const ex = await prisma.interactiveExercise.findUnique({ where: { id } });
     if (!ex) return res.status(404).json({ success: false, message: "Không tìm thấy" });
+    // Đánh dấu đã tương tác thật cho lượt MỞ gần nhất (cơ chế đếm mở-không-làm)
+    if (studentId) {
+      try {
+        const lastView = await prisma.exerciseView.findFirst({
+          where: { studentId, exerciseId: id, interacted: false },
+          orderBy: { openedAt: "desc" },
+        });
+        if (lastView) await prisma.exerciseView.update({ where: { id: lastView.id }, data: { interacted: true } });
+      } catch {}
+    }
     const result = gradeExercise(ex, answers);
     // ═══ Luồng 2-phase: có attemptId → finalize phiên đang mở ═══
     if (attemptId) {

@@ -13,6 +13,7 @@ router.post("/:id/check", ix.checkExercisePublic);  // Public chấm bài không
 // Student: start (bài có timer/giới hạn lượt) + submit + xem attempts
 router.post("/:id/start", authenticate, ix.startExercise);
 router.post("/:id/submit", authenticate, ix.submitExercise);
+router.post("/:id/view", authenticate, ix.recordView);
 router.get("/my/attempts", authenticate, ix.getMyAttempts);
 // Admin/Teacher: CRUD
 router.get("/:id/attempts", authenticate, authorize(...staff), ix.getExerciseAttempts);

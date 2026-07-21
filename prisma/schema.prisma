@@ -496,3 +496,13 @@ model Level {
   @@index([isActive])
   @@map("levels")
 }
+
+model ExerciseView {
+  id          String   @id @default(uuid())
+  studentId   String
+  exerciseId  String
+  openedAt    DateTime @default(now())
+  interacted  Boolean  @default(false)   // true khi HS thực sự submit bài
+  @@index([studentId, openedAt])
+  @@map("exercise_views")
+}
