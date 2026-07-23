@@ -85,3 +85,19 @@ export const uploadSiteFiles = multer({
   { name: "logo", maxCount: 1 },
   { name: "favicon", maxCount: 1 },
 ]);
+
+// Storage cho ảnh báo cáo → uploads/reports/
+const reportStorage = multer.diskStorage({
+  destination: (_req, _file, cb) => {
+    cb(null, path.join(UPLOAD_DIR, "reports"));
+  },
+  filename: (_req, file, cb) => {
+    const ext = path.extname(file.originalname).toLowerCase() || ".png";
+    cb(null, `${uuid()}${ext}`);
+  },
+});
+export const uploadReportImageFile = multer({
+  storage: reportStorage,
+  fileFilter,
+  limits: { fileSize: MAX_SIZE },
+}).single("image");

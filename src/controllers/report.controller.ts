@@ -32,6 +32,16 @@ function shareUrlFor(req: Request, token: string): string {
   return `${base}/reports/share/${token}`;
 }
 
+// POST /api/reports/upload-image — upload 1 ảnh báo cáo, trả URL
+export const uploadReportImage = async (req: Request, res: Response) => {
+  try {
+    if (!req.file) return res.status(400).json({ success: false, message: "Không có ảnh nào được upload" });
+    return res.json({ success: true, data: { url: `/uploads/reports/${req.file.filename}` } });
+  } catch {
+    return res.status(500).json({ success: false, message: "Lỗi upload ảnh" });
+  }
+};
+
 // ─── PUBLIC: phục vụ HTML report qua token (link gửi phụ huynh) ───
 export const getShareReport = async (req: Request, res: Response) => {
   try {
@@ -139,12 +149,13 @@ export const createReport = async (req: Request, res: Response) => {
     const userId = uid(req);
     const {
       studentId, course, learnclickUser, padletAccount,
-      periodTo, dataFrom, dataTo, grid, teacherNote, html, classId, status,
+      periodTo, dataFrom, dataTo, grid, teacherNote, html, imageUrl, classId, status,
     } = req.body;
     if (!studentId) return res.status(400).json({ success: false, message: "Thiếu học sinh" });
     const hasHtml = typeof html === "string" && html.trim().length > 0;
-    if (!hasHtml && !grid) {
-      return res.status(400).json({ success: false, message: "Cần dán HTML hoặc nhập bảng điểm" });
+    const hasImage = typeof imageUrl === "string" && imageUrl.trim().length > 0;
+    if (!hasHtml && !hasImage && !grid) {
+      return res.status(400).json({ success: false, message: "Cần dán HTML, up ảnh hoặc nhập bảng điểm" });
     }
     const report = await prisma.weeklyReport.create({
       data: {
@@ -159,6 +170,7 @@ export const createReport = async (req: Request, res: Response) => {
         grid: (grid ?? null) as any,
         teacherNote: (teacherNote ?? null) as any,
         html: hasHtml ? html : null,
+        imageUrl: hasImage ? imageUrl : null,
         shareToken: genToken(),
         status: status === "PUBLISHED" ? "PUBLISHED" : "DRAFT",
         createdBy: userId!,
@@ -180,7 +192,7 @@ export const updateReport = async (req: Request, res: Response) => {
     const id = String(req.params.id);
     const {
       studentId, course, learnclickUser, padletAccount,
-      periodTo, dataFrom, dataTo, grid, teacherNote, html, classId, status,
+      periodTo, dataFrom, dataTo, grid, teacherNote, html, imageUrl, classId, status,
     } = req.body;
     const data: any = {};
     if (classId !== undefined) data.classId = classId || null;
@@ -193,6 +205,7 @@ export const updateReport = async (req: Request, res: Response) => {
     if (grid !== undefined) data.grid = grid as any;
     if (teacherNote !== undefined) data.teacherNote = teacherNote as any;
     if (html !== undefined) data.html = html;
+    if (imageUrl !== undefined) data.imageUrl = imageUrl;
     if (status !== undefined) data.status = status === "PUBLISHED" ? "PUBLISHED" : "DRAFT";
     const existing = await prisma.weeklyReport.findUnique({
       where: { id },

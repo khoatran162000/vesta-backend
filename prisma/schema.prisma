@@ -341,6 +341,7 @@ model WeeklyReport {
   classId        String?
   class          Class?    @relation("ClassWeeklyReports", fields: [classId], references: [id], onDelete: SetNull)
   html           String?   @db.LongText            // NEW: report HTML/CSS dán trực tiếp
+  imageUrl       String?   @db.Text                // NEW: report dạng ảnh (up hàng loạt)
   shareToken     String?   @unique                 // NEW: token link chia sẻ công khai
   status         String    @default("DRAFT")
   createdBy      String
