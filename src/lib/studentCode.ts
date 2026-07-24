@@ -13,9 +13,16 @@ function removeDiacritics(s: string): string {
 function slugName(fullName: string): string {
   return removeDiacritics(fullName).toLowerCase().replace(/[^a-z0-9]/g, "");
 }
-// Lớp: bỏ dấu + bỏ space + thường hoá. BỎ dấu +, GIỮ -
+// Lớp: bỏ dấu, bỏ space, thường hoá.
+//   Tên lớp trong hệ thống có kèm tháng/năm khai giảng ("7+0726" = band 7+ khoá 07/26).
+//   → BỎ 4 số tháng/năm ở cuối, chỉ lấy band, tránh lặp với phần ngày đăng ký.
+//   BỎ dấu + cho HS đỡ khó gõ. GIỮ - (lớp 1-1, và đuôi chống trùng -2).
+// VD: "7+0726" → "7" · "5+0526" → "5" · "1-1" → "1-1" · "Phát Âm" → "phatam"
 function slugCourse(course: string): string {
-  return removeDiacritics(course).toLowerCase().replace(/[^a-z0-9\-]/g, "");
+  let s = removeDiacritics(course).toLowerCase().replace(/[^a-z0-9+\-]/g, "");
+  const stripped = s.replace(/\d{4}$/, "");   // bỏ mmyy cuối nếu vẫn còn phần phía trước
+  if (stripped.length > 0) s = stripped;
+  return s.replace(/\+/g, "");                // bỏ dấu +
 }
 // Ngày đăng ký → ddmmyy (pad 0 để không trùng: 1/12/26 và 11/2/26 khác nhau)
 function ddmmyy(date: Date): string {
