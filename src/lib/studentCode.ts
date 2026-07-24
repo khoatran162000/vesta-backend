@@ -1,25 +1,22 @@
 // FILE: src/lib/studentCode.ts
 // Sinh mã tài khoản học viên theo công thức của trung tâm:
 //   {tên} + {lớp} + {ddmmyy}   (nối thẳng, không dấu ngăn cách)
-// Quy tắc: bỏ dấu tiếng Việt, bỏ khoảng trắng, thường hoá. GIỮ dấu + và - (lớp 7+, 1-1).
-// VD: Lê Hương Ly · 7+ · 17/07/2026 → lehuongly7+170726
-//     Lê Hương Ly · Phát Âm · 17/07/2026 → lehuonglyphatam170726
+// Quy tắc: bỏ dấu tiếng Việt, bỏ khoảng trắng, thường hoá.
+//   BỎ dấu + (HS đỡ khó gõ khi đăng nhập). GIỮ dấu - (lớp 1-1, và đuôi chống trùng -2, -3).
+// VD: Lê Hương Ly · 7+ · 24/07/2026 → lehuongly7240726
+//     Lê Hương Ly · Phát Âm · 24/07/2026 → lehuonglyphatam240726
 import prisma from "../config/database";
-
 function removeDiacritics(s: string): string {
   return s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/đ/g, "d").replace(/Đ/g, "D");
 }
-
 // Tên: chỉ giữ chữ + số (bỏ mọi ký tự lạ)
 function slugName(fullName: string): string {
   return removeDiacritics(fullName).toLowerCase().replace(/[^a-z0-9]/g, "");
 }
-
-// Lớp: bỏ dấu + bỏ space + thường hoá, NHƯNG giữ + và -
+// Lớp: bỏ dấu + bỏ space + thường hoá. BỎ dấu +, GIỮ -
 function slugCourse(course: string): string {
-  return removeDiacritics(course).toLowerCase().replace(/[^a-z0-9+\-]/g, "");
+  return removeDiacritics(course).toLowerCase().replace(/[^a-z0-9\-]/g, "");
 }
-
 // Ngày đăng ký → ddmmyy (pad 0 để không trùng: 1/12/26 và 11/2/26 khác nhau)
 function ddmmyy(date: Date): string {
   const dd = String(date.getDate()).padStart(2, "0");
@@ -27,7 +24,6 @@ function ddmmyy(date: Date): string {
   const yy = String(date.getFullYear()).slice(-2);
   return `${dd}${mm}${yy}`;
 }
-
 // Sinh mã cơ sở (chưa kiểm trùng)
 export function buildStudentCode(fullName: string, course?: string | null, startDate?: Date | null): string {
   const namePart = slugName(fullName);
@@ -35,7 +31,6 @@ export function buildStudentCode(fullName: string, course?: string | null, start
   const datePart = ddmmyy(startDate || new Date());
   return `${namePart}${coursePart}${datePart}`;
 }
-
 // Sinh mã UNIQUE — nếu trùng thì thêm đuôi -2, -3, ...
 export async function generateUniqueStudentCode(
   fullName: string, course?: string | null, startDate?: Date | null
