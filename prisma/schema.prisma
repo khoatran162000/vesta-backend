@@ -77,6 +77,8 @@ model User {
   finalReportsCreated  FinalReport[]        @relation("FinalReportCreator")
   classesCreated       Class[]           @relation("ClassCreator")
   enrollments          ClassEnrollment[] @relation("StudentEnrollments")
+  attendances       Attendance[] @relation("StudentAttendance")
+  markedAttendances Attendance[] @relation("AttendanceMarker")
   @@index([role])
   @@index([isActive])
   @@index([studentCode])
@@ -461,6 +463,7 @@ model Class {
   createdBy   String
   creator     User     @relation("ClassCreator", fields: [createdBy], references: [id])
   enrollments ClassEnrollment[]
+  attendances Attendance[]
   weeklyReports WeeklyReport[] @relation("ClassWeeklyReports")
   finalReports  FinalReport[]  @relation("ClassFinalReports")
   createdAt   DateTime @default(now())
@@ -506,4 +509,25 @@ model ExerciseView {
   interacted  Boolean  @default(false)   // true khi HS thực sự submit bài
   @@index([studentId, openedAt])
   @@map("exercise_views")
+}
+
+model Attendance {
+  id          String   @id @default(uuid())
+  classId     String
+  class       Class    @relation(fields: [classId], references: [id], onDelete: Cascade)
+  studentId   String
+  student     User     @relation("StudentAttendance", fields: [studentId], references: [id], onDelete: Cascade)
+  sessionDate DateTime                        // ngày buổi học (chuẩn hoá 00:00 UTC)
+  status      String   @default("ABSENT")     // PRESENT | LATE | ABSENT (mở rộng được, không cần đổi schema)
+  score       Float?                          // điểm buổi (tuỳ chọn)
+  note        String?  @db.Text
+  markedAt    DateTime @default(now())        // thời điểm GV bấm tick
+  markedBy    String?
+  marker      User?    @relation("AttendanceMarker", fields: [markedBy], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  @@unique([classId, studentId, sessionDate])
+  @@index([classId, sessionDate])
+  @@index([studentId])
+  @@map("attendances")
 }

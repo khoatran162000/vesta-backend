@@ -21,6 +21,7 @@ import bookRoutes from "./book.routes";
 import siteContentRoutes from "./siteContent.routes";
 import classRoutes from "./class.routes";
 import levelRoutes from "./level.routes";
+import attendanceRoutes from "./attendance.routes";
 const router = Router();
 router.use("/auth", authRoutes);
 router.use("/posts", postRoutes);
@@ -41,6 +42,7 @@ router.use("/teachers", teacherRoutes);
 router.use("/courses", courseRoutes);
 router.use("/books", bookRoutes);
 router.use("/site-content", siteContentRoutes);
+router.use("/attendance", attendanceRoutes);
 router.use("/classes", classRoutes);
 router.use("/levels", levelRoutes);
 router.get("/health", (_req, res) => {
