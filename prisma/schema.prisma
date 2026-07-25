@@ -532,3 +532,20 @@ model Attendance {
   @@index([studentId])
   @@map("attendances")
 }
+
+model Consultation {
+  id            String   @id @default(uuid())
+  name          String
+  phone         String
+  email         String?
+  preferredTime String?
+  question      String?  @db.Text
+  status        String   @default("NEW")   // NEW | CONTACTED | DONE | SPAM
+  handledBy     String?                     // tên/id admin đã xử lý (ghi chú tự do)
+  note          String?  @db.Text           // ghi chú nội bộ của admin
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  @@index([status])
+  @@index([createdAt])
+  @@map("consultations")
+}
