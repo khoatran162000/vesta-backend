@@ -3,7 +3,18 @@ import { Request, Response } from "express";
 import prisma from "../config/database";
 import * as api from "../utils/apiResponse";
 import { computeStudentProgress } from "../lib/studentProgress";
+import { gradeGaps, stripGapAnswers } from "../utils/gradeGaps";
+
 type Params = { [key: string]: string };
+
+// Lấy gap-map của 1 câu (parse nếu là chuỗi). Trả null nếu câu không phải dạng gap.
+function questionGaps(q: any): Record<string, any> | null {
+  const raw = q?.gaps;
+  if (!raw) return null;
+  const g = typeof raw === "string" ? JSON.parse(raw) : raw;
+  return g && typeof g === "object" && Object.keys(g).length > 0 ? g : null;
+}
+
 // ═══════════════════════ DASHBOARD ═══════════════════════
 // GET /api/student/dashboard
 export async function getDashboard(req: Request, res: Response) {
@@ -46,6 +57,7 @@ export async function getDashboard(req: Request, res: Response) {
     return api.error(res, "Lỗi server", 500);
   }
 }
+
 // GET /api/student/progress — Bảng tiến độ HS tự xem (hệ thống tự điền %)
 export async function getProgress(req: Request, res: Response) {
   try {
@@ -57,6 +69,7 @@ export async function getProgress(req: Request, res: Response) {
     return api.error(res, "Lỗi server", 500);
   }
 }
+
 // ═══════════════════════ EXAM BROWSING ═══════════════════════
 // GET /api/student/categories — Danh mục đề thi
 export async function getCategories(req: Request, res: Response) {
@@ -81,6 +94,7 @@ export async function getCategories(req: Request, res: Response) {
     return api.error(res, "Lỗi server", 500);
   }
 }
+
 // GET /api/student/exams?categoryId=xxx — Đề thi Published trong 1 category
 export async function getExams(req: Request, res: Response) {
   try {
@@ -126,6 +140,7 @@ export async function getExams(req: Request, res: Response) {
     return api.error(res, "Lỗi server", 500);
   }
 }
+
 // ═══════════════════════ EXAM ENGINE ═══════════════════════
 // POST /api/student/exams/:examId/start — Bắt đầu làm bài
 export async function startExam(req: Request<Params>, res: Response) {
@@ -150,11 +165,16 @@ export async function startExam(req: Request<Params>, res: Response) {
         exam: {
           id: exam.id, title: exam.title, duration: exam.duration, totalScore: exam.totalScore,
           maxAttempts: exam.maxAttempts,
-          questions: exam.questions.map((q) => ({
-            id: q.id, type: q.type, content: q.content, mediaUrl: q.mediaUrl,
-            options: q.options, score: q.score, orderIndex: q.orderIndex,
-            // KHÔNG trả correctAnswer và explanation khi đang làm bài
-          })),
+          questions: exam.questions.map((q) => {
+            const g = questionGaps(q);
+            return {
+              id: q.id, type: q.type, content: q.content, mediaUrl: q.mediaUrl,
+              options: q.options, score: q.score, orderIndex: q.orderIndex,
+              // Câu nhiều gap: kèm gaps đã ẩn đáp án (type + gợi ý + options dropdown)
+              gaps: g ? stripGapAnswers(g) : undefined,
+              // KHÔNG trả correctAnswer và explanation khi đang làm bài
+            };
+          }),
         },
         startTime: existingAttempt.startTime,
         answers: existingAttempt.answers || {},
@@ -180,10 +200,14 @@ export async function startExam(req: Request<Params>, res: Response) {
       exam: {
         id: exam.id, title: exam.title, duration: exam.duration, totalScore: exam.totalScore,
         maxAttempts: exam.maxAttempts,
-        questions: exam.questions.map((q) => ({
-          id: q.id, type: q.type, content: q.content, mediaUrl: q.mediaUrl,
-          options: q.options, score: q.score, orderIndex: q.orderIndex,
-        })),
+        questions: exam.questions.map((q) => {
+          const g = questionGaps(q);
+          return {
+            id: q.id, type: q.type, content: q.content, mediaUrl: q.mediaUrl,
+            options: q.options, score: q.score, orderIndex: q.orderIndex,
+            gaps: g ? stripGapAnswers(g) : undefined,
+          };
+        }),
       },
       startTime: attempt.startTime,
       answers: {},
@@ -195,6 +219,7 @@ export async function startExam(req: Request<Params>, res: Response) {
     return api.error(res, "Lỗi server", 500);
   }
 }
+
 // GET /api/student/attempts/:attemptId — Lấy lại bài đang làm dở (F5 / mất mạng / đóng nhầm tab)
 export async function getAttempt(req: Request<Params>, res: Response) {
   try {
@@ -213,11 +238,15 @@ export async function getAttempt(req: Request<Params>, res: Response) {
         id: attempt.exam.id, title: attempt.exam.title,
         duration: attempt.exam.duration, totalScore: attempt.exam.totalScore,
         maxAttempts: attempt.exam.maxAttempts,
-        questions: attempt.exam.questions.map((q) => ({
-          id: q.id, type: q.type, content: q.content, mediaUrl: q.mediaUrl,
-          options: q.options, score: q.score, orderIndex: q.orderIndex,
-          // KHÔNG trả correctAnswer và explanation khi đang làm bài
-        })),
+        questions: attempt.exam.questions.map((q) => {
+          const g = questionGaps(q);
+          return {
+            id: q.id, type: q.type, content: q.content, mediaUrl: q.mediaUrl,
+            options: q.options, score: q.score, orderIndex: q.orderIndex,
+            gaps: g ? stripGapAnswers(g) : undefined,
+            // KHÔNG trả correctAnswer và explanation khi đang làm bài
+          };
+        }),
       },
       startTime: attempt.startTime,
       answers: attempt.answers || {},
@@ -229,6 +258,7 @@ export async function getAttempt(req: Request<Params>, res: Response) {
     return api.error(res, "Lỗi server", 500);
   }
 }
+
 // PUT /api/student/attempts/:attemptId/save — Auto-save mỗi 30s
 export async function saveAnswers(req: Request<Params>, res: Response) {
   try {
@@ -251,6 +281,7 @@ export async function saveAnswers(req: Request<Params>, res: Response) {
     return api.error(res, "Lỗi server", 500);
   }
 }
+
 // POST /api/student/attempts/:attemptId/submit — Nộp bài
 export async function submitExam(req: Request<Params>, res: Response) {
   try {
@@ -276,6 +307,17 @@ export async function submitExam(req: Request<Params>, res: Response) {
     for (const q of attempt.exam.questions) {
       if (q.type === "ESSAY") continue;
       const studentAnswer = (studentAnswers as Record<string, any>)[q.id];
+
+      // ── Câu FILL_IN_BLANK nhiều gap (LearnClick) ──
+      // studentAnswer là object con { "1": "...", "2": "..." }; chấm per-gap rồi quy về q.score.
+      const gapMap = questionGaps(q);
+      if (gapMap) {
+        const r = gradeGaps(gapMap, studentAnswer || {});
+        if (r.maxScore > 0) totalScore += (q.score * r.score) / r.maxScore;
+        continue;
+      }
+
+      // ── Câu thường (MC / FILL 1 ô) ──
       if (studentAnswer === undefined || studentAnswer === null || studentAnswer === "") continue;
       const correct = typeof q.correctAnswer === "string" ? q.correctAnswer : JSON.stringify(q.correctAnswer);
       const student = typeof studentAnswer === "string" ? studentAnswer : JSON.stringify(studentAnswer);
@@ -309,6 +351,7 @@ export async function submitExam(req: Request<Params>, res: Response) {
     return api.error(res, "Lỗi server", 500);
   }
 }
+
 // ═══════════════════════ HISTORY & REVIEW ═══════════════════════
 // GET /api/student/history — Lịch sử thi
 export async function getHistory(req: Request, res: Response) {
@@ -333,6 +376,7 @@ export async function getHistory(req: Request, res: Response) {
     return api.error(res, "Lỗi server", 500);
   }
 }
+
 // GET /api/student/history/:attemptId — Xem lại chi tiết bài làm (SAU KHI NỘP)
 export async function getAttemptReview(req: Request<Params>, res: Response) {
   try {
@@ -349,6 +393,23 @@ export async function getAttemptReview(req: Request<Params>, res: Response) {
     const notes = (attempt.studentNotes || {}) as Record<string, any>;
     const questions = attempt.exam.questions.map((q, i) => {
       const studentAnswer = studentAnswers[q.id] ?? null;
+
+      // ── Câu nhiều gap: chấm per-gap để hiển thị đúng/sai từng ô ──
+      const gapMap = questionGaps(q);
+      if (gapMap) {
+        const r = gradeGaps(gapMap, studentAnswer || {});
+        return {
+          questionNumber: i + 1, id: q.id, type: q.type, content: q.content,
+          mediaUrl: q.mediaUrl, options: q.options, correctAnswer: null,
+          explanation: q.explanation, score: q.score,
+          studentAnswer,
+          // Badge tổng: chỉ true khi đúng hết các ô (đủ dùng cho biểu tượng ✓/✗ ở cấp câu)
+          isCorrect: r.maxScore > 0 ? r.score === r.maxScore : null,
+          gapResult: { score: r.score, maxScore: r.maxScore, percent: r.percent, detail: r.detail },
+          studentNote: notes[q.id] || null,
+        };
+      }
+
       let isCorrect: boolean | null = null;
       if (q.type !== "ESSAY" && studentAnswer !== null && studentAnswer !== "") {
         const correct = typeof q.correctAnswer === "string" ? q.correctAnswer : JSON.stringify(q.correctAnswer);
@@ -375,6 +436,7 @@ export async function getAttemptReview(req: Request<Params>, res: Response) {
     return api.error(res, "Lỗi server", 500);
   }
 }
+
 // ═══════════════════════ NOTIFICATIONS ═══════════════════════
 // GET /api/student/notifications
 export async function getNotifications(req: Request, res: Response) {
@@ -393,6 +455,7 @@ export async function getNotifications(req: Request, res: Response) {
     return api.error(res, "Lỗi server", 500);
   }
 }
+
 // PATCH /api/student/notifications/read-all
 export async function markAllRead(req: Request, res: Response) {
   try {

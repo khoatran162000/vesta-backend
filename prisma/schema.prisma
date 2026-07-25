@@ -150,6 +150,7 @@ model Question {
   mediaUrl      String?
   options       Json?
   correctAnswer Json
+  gaps          Json?        // LearnClick multi-gap: { "1": {type,answers[],options?,hint?}, ... } — null với câu thường
   explanation   String?      @db.Text
   orderIndex    Int          @default(0)
   score         Float        @default(1)

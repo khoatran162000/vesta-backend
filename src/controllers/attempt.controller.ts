@@ -1,10 +1,18 @@
 // FILE: src/controllers/attempt.controller.ts — Xem lich su thi + chi tiet bai lam + phan tich loi sai
-
 import { Request, Response } from "express";
 import prisma from "../config/database";
 import * as api from "../utils/apiResponse";
+import { gradeGaps } from "../utils/gradeGaps";
 
 type Params = { [key: string]: string };
+
+// Lấy gap-map của 1 câu (parse nếu là chuỗi). Trả null nếu câu không phải dạng gap.
+function questionGaps(q: any): Record<string, any> | null {
+  const raw = q?.gaps;
+  if (!raw) return null;
+  const g = typeof raw === "string" ? JSON.parse(raw) : raw;
+  return g && typeof g === "object" && Object.keys(g).length > 0 ? g : null;
+}
 
 // GET /api/attempts?studentId=xxx&examId=xxx&page=1
 export async function listAttempts(req: Request, res: Response) {
@@ -15,12 +23,10 @@ export async function listAttempts(req: Request, res: Response) {
     const examId = req.query.examId as string;
     const status = req.query.status as string;
     const skip = (page - 1) * limit;
-
     const where: any = {};
     if (studentId) where.studentId = studentId;
     if (examId) where.examId = examId;
     if (status) where.status = status;
-
     const [attempts, total] = await Promise.all([
       prisma.examAttempt.findMany({
         where,
@@ -34,7 +40,6 @@ export async function listAttempts(req: Request, res: Response) {
       }),
       prisma.examAttempt.count({ where }),
     ]);
-
     return api.paginated(res, attempts, total, page, limit);
   } catch (err) {
     return api.error(res, "Lỗi server", 500);
@@ -56,17 +61,36 @@ export async function getAttemptById(req: Request<Params>, res: Response) {
         },
       },
     });
-
     if (!attempt) return api.error(res, "Lượt thi không tồn tại", 404);
-
     // Parse answers và so sánh với correctAnswer để biết đúng/sai
     const studentAnswers = attempt.answers ? (typeof attempt.answers === "string" ? JSON.parse(attempt.answers as string) : attempt.answers) as Record<string, any> : {};
     const studentNotes = attempt.studentNotes ? (typeof attempt.studentNotes === "string" ? JSON.parse(attempt.studentNotes as string) : attempt.studentNotes) as Record<string, any> : {};
-
     const questionsWithResult = attempt.exam.questions.map((q, i) => {
       const studentAnswer = studentAnswers[q.id] ?? null;
-      const correctAnswer = q.correctAnswer;
 
+      // ── Câu FILL_IN_BLANK nhiều gap (LearnClick): chấm per-gap ──
+      const gapMap = questionGaps(q);
+      if (gapMap) {
+        const r = gradeGaps(gapMap, studentAnswer || {});
+        return {
+          questionNumber: i + 1,
+          questionId: q.id,
+          type: q.type,
+          content: q.content,
+          mediaUrl: q.mediaUrl,
+          options: q.options,
+          correctAnswer: null,               // đáp án nằm trong gapResult.detail
+          explanation: q.explanation,
+          score: q.score,
+          studentAnswer,
+          // đúng cả bài mới tính là câu đúng (dùng cho thống kê correct/wrong)
+          isCorrect: r.maxScore > 0 ? r.score === r.maxScore : null,
+          gapResult: { score: r.score, maxScore: r.maxScore, percent: r.percent, detail: r.detail },
+          studentNote: studentNotes[q.id] || null,
+        };
+      }
+
+      const correctAnswer = q.correctAnswer;
       // So sánh đáp án
       let isCorrect: boolean | null = null;
       if (q.type === "ESSAY") {
@@ -76,7 +100,6 @@ export async function getAttemptById(req: Request<Params>, res: Response) {
         const student = typeof studentAnswer === "string" ? studentAnswer : JSON.stringify(studentAnswer);
         isCorrect = correct.toLowerCase().trim() === student.toLowerCase().trim();
       }
-
       return {
         questionNumber: i + 1,
         questionId: q.id,
@@ -92,14 +115,12 @@ export async function getAttemptById(req: Request<Params>, res: Response) {
         studentNote: studentNotes[q.id] || null,
       };
     });
-
     // Thống kê
     const totalQuestions = questionsWithResult.length;
     const answered = questionsWithResult.filter((q) => q.studentAnswer !== null && q.studentAnswer !== "").length;
     const correct = questionsWithResult.filter((q) => q.isCorrect === true).length;
     const wrong = questionsWithResult.filter((q) => q.isCorrect === false).length;
     const essay = questionsWithResult.filter((q) => q.isCorrect === null && q.type === "ESSAY").length;
-
     // Phân tích lỗi sai theo dạng câu hỏi
     const errorByType: Record<string, { total: number; wrong: number }> = {};
     questionsWithResult.forEach((q) => {
@@ -107,7 +128,6 @@ export async function getAttemptById(req: Request<Params>, res: Response) {
       errorByType[q.type].total++;
       if (q.isCorrect === false) errorByType[q.type].wrong++;
     });
-
     return api.success(res, {
       id: attempt.id,
       student: attempt.student,
@@ -135,13 +155,11 @@ export async function getAttemptById(req: Request<Params>, res: Response) {
 export async function getStudentStats(req: Request<Params>, res: Response) {
   try {
     const studentId = req.params.studentId as string;
-
     const student = await prisma.user.findUnique({
       where: { id: studentId },
       select: { id: true, fullName: true, email: true, role: true, isActive: true, createdAt: true },
     });
     if (!student) return api.error(res, "Học viên không tồn tại", 404);
-
     const [totalAttempts, submittedAttempts, avgScore, recentAttempts, lastActivity] = await Promise.all([
       prisma.examAttempt.count({ where: { studentId } }),
       prisma.examAttempt.count({ where: { studentId, status: "SUBMITTED" } }),
@@ -165,12 +183,10 @@ export async function getStudentStats(req: Request<Params>, res: Response) {
         select: { createdAt: true },
       }),
     ]);
-
     // Tính số ngày không hoạt động
     const daysSinceLastActivity = lastActivity
       ? Math.floor((Date.now() - new Date(lastActivity.createdAt).getTime()) / (1000 * 60 * 60 * 24))
       : null;
-
     return api.success(res, {
       student,
       stats: {
