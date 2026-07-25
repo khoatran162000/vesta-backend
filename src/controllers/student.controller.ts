@@ -405,6 +405,7 @@ export async function getAttemptReview(req: Request<Params>, res: Response) {
           studentAnswer,
           // Badge tổng: chỉ true khi đúng hết các ô (đủ dùng cho biểu tượng ✓/✗ ở cấp câu)
           isCorrect: r.maxScore > 0 ? r.score === r.maxScore : null,
+          gaps: stripGapAnswers(gapMap),   // ← MỚI: GapPlayer cần gaps (type/options/hint) để dựng ô
           gapResult: { score: r.score, maxScore: r.maxScore, percent: r.percent, detail: r.detail },
           studentNote: notes[q.id] || null,
         };
