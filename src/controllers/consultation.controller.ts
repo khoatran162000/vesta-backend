@@ -111,6 +111,16 @@ export const listConsultations = async (req: Request, res: Response) => {
   }
 };
 
+// GET /api/consultation/count — ADMIN: chỉ đếm số yêu cầu MỚI (cho badge sidebar, poll định kỳ)
+export const countNewConsultations = async (_req: Request, res: Response) => {
+  try {
+    const newCount = await prisma.consultation.count({ where: { status: "NEW" } });
+    return api.success(res, { newCount });
+  } catch (err) {
+    return api.error(res, "Lỗi server", 500);
+  }
+};
+
 // PATCH /api/consultation/:id — ADMIN: cập nhật trạng thái / ghi chú
 export const updateConsultation = async (req: Request<Params>, res: Response) => {
   try {
