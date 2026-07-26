@@ -247,14 +247,33 @@ export async function bulkSetRegStatus(req: Request, res: Response) {
 export async function bulkCreateStudents(req: Request, res: Response) {
   try {
     const { students } = req.body;
-    // students: [{ fullName, email?, phone?, address?, password?, studentCode?, course?, startDate? }]
+    // students: [{ fullName, email?, phone?, address?, password?, studentCode?, course?, className?, startDate? }]
     if (!Array.isArray(students) || students.length === 0) {
       return api.error(res, "Danh sách học viên không hợp lệ");
     }
-    if (students.length > 200) {
-      return api.error(res, "Tối đa 200 học viên mỗi lần import");
+    if (students.length > 300) {
+      return api.error(res, "Tối đa 300 học viên mỗi lần import");
     }
-    const results = { created: 0, skipped: 0, errors: [] as string[], createdStudents: [] as any[] };
+
+    // Tải sẵn danh sách lớp để khớp theo TÊN (không phân biệt hoa/thường, bỏ khoảng trắng thừa)
+    const allClasses = await prisma.class.findMany({ select: { id: true, name: true, classCode: true } });
+    const normName = (s: string) => String(s || "").trim().toLowerCase().replace(/\s+/g, " ");
+    const classByName = new Map<string, { id: string; name: string; dupe: boolean }>();
+    for (const c of allClasses) {
+      const key = normName(c.name);
+      if (classByName.has(key)) classByName.get(key)!.dupe = true;
+      else classByName.set(key, { id: c.id, name: c.name, dupe: false });
+    }
+
+    const results = {
+      created: 0,
+      skipped: 0,
+      enrolled: 0,
+      errors: [] as string[],
+      warnings: [] as string[],
+      createdStudents: [] as any[],
+    };
+
     for (const s of students) {
       if (!s.fullName) {
         results.errors.push(`Thiếu họ tên: ${JSON.stringify(s)}`);
@@ -270,7 +289,7 @@ export async function bulkCreateStudents(req: Request, res: Response) {
           continue;
         }
       }
-      // Mã HV: dùng mã admin đưa (kiểm trùng), không thì sinh theo công thức {tên}{lớp}{ddmmyy}
+      // Mã HV: dùng mã admin đưa (kiểm trùng), không thì sinh theo công thức {tên}{trình độ}{ddmmyy}
       let code = s.studentCode;
       if (code) {
         const existingCode = await prisma.user.findUnique({ where: { studentCode: code } });
@@ -301,10 +320,31 @@ export async function bulkCreateStudents(req: Request, res: Response) {
         },
         select: { id: true, studentCode: true, fullName: true },
       });
-      results.createdStudents.push({ studentCode: code, fullName: s.fullName, password: rawPassword });
+
+      // Nếu có cột "Lớp" → khớp Class theo tên và ghi danh (giữ course để sinh mã như trên)
+      let enrollNote = "";
+      if (s.className && String(s.className).trim()) {
+        const match = classByName.get(normName(s.className));
+        if (match) {
+          try {
+            await prisma.classEnrollment.create({ data: { classId: match.id, studentId: user.id } });
+            results.enrolled++;
+            enrollNote = match.dupe ? ` (lưu ý: có nhiều lớp trùng tên "${match.name}", đã xếp vào lớp đầu tiên)` : "";
+            if (match.dupe) results.warnings.push(`Nhiều lớp trùng tên "${s.className}" — ${s.fullName} xếp vào lớp đầu tiên.`);
+          } catch {
+            // trùng enrollment (đã ở lớp) — bỏ qua, không lỗi
+          }
+        } else {
+          results.warnings.push(`Không tìm thấy lớp "${s.className}" — đã tạo ${s.fullName} nhưng chưa xếp lớp.`);
+        }
+      }
+
+      results.createdStudents.push({ studentCode: code, fullName: s.fullName, password: rawPassword, note: enrollNote });
       results.created++;
     }
-    return api.success(res, results, `Đã tạo ${results.created} tài khoản, bỏ qua ${results.skipped}`);
+
+    return api.success(res, results,
+      `Đã tạo ${results.created} tài khoản, xếp lớp ${results.enrolled}, bỏ qua ${results.skipped}`);
   } catch (err) {
     console.error("Bulk create error:", err);
     return api.error(res, "Lỗi server", 500);
