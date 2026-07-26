@@ -36,12 +36,17 @@ if (process.env.NODE_ENV === "development") {
 }
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 100,
+  max: 5000,   // nới cho thao tác admin bình thường (poll badge, load danh sách, điểm danh...)
+  standardHeaders: true,
+  legacyHeaders: false,
   message: { success: false, message: "Quá nhiều request, vui lòng thử lại sau." },
 });
+// Chặt riêng cho đăng nhập (chống dò mật khẩu) — nới nhẹ để admin gõ nhầm vài lần không bị khoá
 app.use("/api/auth/login", rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 10,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
   message: { success: false, message: "Quá nhiều lần đăng nhập, vui lòng thử lại sau 15 phút." },
 }));
 app.use("/api", limiter);
