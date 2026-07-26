@@ -146,12 +146,12 @@ model Question {
   examId        String
   exam          Exam         @relation(fields: [examId], references: [id], onDelete: Cascade)
   type          QuestionType
-  content       String       @db.Text
+  content       String       @db.LongText
   mediaUrl      String?
   options       Json?
   correctAnswer Json
   gaps          Json?        // LearnClick multi-gap: { "1": {type,answers[],options?,hint?}, ... } — null với câu thường
-  explanation   String?      @db.Text
+  explanation   String?      @db.LongText
   orderIndex    Int          @default(0)
   score         Float        @default(1)
   createdAt     DateTime     @default(now())
@@ -208,7 +208,7 @@ model ClassDiary {
   homework    String?  @db.Text
   duration    String?
   teacherNote String?  @db.Text
-  contentHtml String?  @db.Text
+  contentHtml String?  @db.LongText
   scoreTable  Json?
   createdBy   String
   creator     User     @relation("DiaryCreator", fields: [createdBy], references: [id])
@@ -230,7 +230,7 @@ model Material {
   isPublished Boolean  @default(true)
   createdBy   String
   creator     User     @relation("MaterialCreator", fields: [createdBy], references: [id])
-  contentHtml String?  @db.Text
+  contentHtml String?  @db.LongText
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   @@index([course])
