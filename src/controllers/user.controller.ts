@@ -274,27 +274,57 @@ export async function bulkCreateStudents(req: Request, res: Response) {
       createdStudents: [] as any[],
     };
 
+    // Chặn trùng NGAY TRONG danh sách import (2 dòng cùng SĐT/email trong file)
+    const seenPhones = new Set<string>();
+    const seenEmails = new Set<string>();
+
     for (const s of students) {
       if (!s.fullName) {
         results.errors.push(`Thiếu họ tên: ${JSON.stringify(s)}`);
         results.skipped++;
         continue;
       }
-      // Email tuỳ chọn — chỉ kiểm trùng nếu có (KHÔNG kiểm SĐT: anh em ruột dùng chung số bố mẹ)
-      if (s.email) {
-        const existingEmail = await prisma.user.findUnique({ where: { email: s.email } });
-        if (existingEmail) {
-          results.errors.push(`Email đã tồn tại: ${s.email} (${s.fullName})`);
+
+      const phone = s.phone ? String(s.phone).trim() : "";
+      const email = s.email ? String(s.email).trim() : "";
+
+      // 1) Chặn trùng SĐT — trong file
+      if (phone && seenPhones.has(phone)) {
+        results.errors.push(`SĐT trùng trong file: ${phone} (${s.fullName}) — đã bỏ qua`);
+        results.skipped++;
+        continue;
+      }
+      // 2) Chặn trùng email — trong file
+      if (email && seenEmails.has(email.toLowerCase())) {
+        results.errors.push(`Email trùng trong file: ${email} (${s.fullName}) — đã bỏ qua`);
+        results.skipped++;
+        continue;
+      }
+      // 3) Chặn trùng SĐT — với dữ liệu đã có trong hệ thống
+      if (phone) {
+        const existingPhone = await prisma.user.findFirst({ where: { phone } });
+        if (existingPhone) {
+          results.errors.push(`SĐT đã tồn tại: ${phone} (${s.fullName}) — đã bỏ qua`);
           results.skipped++;
           continue;
         }
       }
+      // 4) Chặn trùng email — với dữ liệu đã có trong hệ thống
+      if (email) {
+        const existingEmail = await prisma.user.findUnique({ where: { email } });
+        if (existingEmail) {
+          results.errors.push(`Email đã tồn tại: ${email} (${s.fullName}) — đã bỏ qua`);
+          results.skipped++;
+          continue;
+        }
+      }
+
       // Mã HV: dùng mã admin đưa (kiểm trùng), không thì sinh theo công thức {tên}{trình độ}{ddmmyy}
       let code = s.studentCode;
       if (code) {
         const existingCode = await prisma.user.findUnique({ where: { studentCode: code } });
         if (existingCode) {
-          results.errors.push(`Mã HV đã tồn tại: ${code} (${s.fullName})`);
+          results.errors.push(`Mã HV đã tồn tại: ${code} (${s.fullName}) — đã bỏ qua`);
           results.skipped++;
           continue;
         }
@@ -302,15 +332,16 @@ export async function bulkCreateStudents(req: Request, res: Response) {
         const start = s.startDate ? new Date(s.startDate) : new Date();
         code = await generateUniqueStudentCode(s.fullName, s.course, start);
       }
-      const rawPassword = s.password || (s.phone && String(s.phone).trim()) || "Student@123";
+
+      const rawPassword = s.password || phone || "Student@123";
       const passwordHash = await bcrypt.hash(rawPassword, 12);
       const user = await prisma.user.create({
         data: {
-          email: s.email || null,
+          email: email || null,
           studentCode: code,
           passwordHash,
           fullName: s.fullName,
-          phone: s.phone || null,
+          phone: phone || null,
           address: s.address || null,
           course: s.course || null,
           startDate: s.startDate ? new Date(s.startDate) : new Date(),
@@ -321,7 +352,11 @@ export async function bulkCreateStudents(req: Request, res: Response) {
         select: { id: true, studentCode: true, fullName: true },
       });
 
-      // Nếu có cột "Lớp" → khớp Class theo tên và ghi danh (giữ course để sinh mã như trên)
+      // đánh dấu đã dùng, để chặn trùng trong cùng file
+      if (phone) seenPhones.add(phone);
+      if (email) seenEmails.add(email.toLowerCase());
+
+      // Nếu có cột "Lớp" → khớp Class theo tên và ghi danh
       let enrollNote = "";
       if (s.className && String(s.className).trim()) {
         const match = classByName.get(normName(s.className));
@@ -329,10 +364,12 @@ export async function bulkCreateStudents(req: Request, res: Response) {
           try {
             await prisma.classEnrollment.create({ data: { classId: match.id, studentId: user.id } });
             results.enrolled++;
-            enrollNote = match.dupe ? ` (lưu ý: có nhiều lớp trùng tên "${match.name}", đã xếp vào lớp đầu tiên)` : "";
-            if (match.dupe) results.warnings.push(`Nhiều lớp trùng tên "${s.className}" — ${s.fullName} xếp vào lớp đầu tiên.`);
+            if (match.dupe) {
+              enrollNote = ` (nhiều lớp trùng tên "${match.name}", xếp vào lớp đầu tiên)`;
+              results.warnings.push(`Nhiều lớp trùng tên "${s.className}" — ${s.fullName} xếp vào lớp đầu tiên.`);
+            }
           } catch {
-            // trùng enrollment (đã ở lớp) — bỏ qua, không lỗi
+            // trùng enrollment (đã ở lớp) — bỏ qua
           }
         } else {
           results.warnings.push(`Không tìm thấy lớp "${s.className}" — đã tạo ${s.fullName} nhưng chưa xếp lớp.`);
