@@ -156,3 +156,37 @@ export const getMyAttendance = async (req: Request, res: Response) => {
     return res.status(500).json({ success: false, message: "Lỗi tải lịch sử điểm danh" });
   }
 };
+
+// GET /api/attendance/student/:studentId — Staff xem lịch sử điểm danh của 1 HS
+export const getStudentAttendance = async (req: Request, res: Response) => {
+  try {
+    const studentId = String(req.params.studentId || "");
+    if (!studentId) return res.status(400).json({ success: false, message: "Thiếu studentId" });
+    const rows = await prisma.attendance.findMany({
+      where: { studentId },
+      include: { class: { select: { name: true, classCode: true, course: true } } },
+      orderBy: { sessionDate: "desc" },
+      take: 300,
+    });
+    const total = rows.length;
+    const present = rows.filter((r) => r.status === "PRESENT").length;
+    const late = rows.filter((r) => r.status === "LATE").length;
+    const absent = total - present - late;
+    // Điểm TB buổi (chỉ các buổi có nhập điểm)
+    const scored = rows.filter((r) => r.score !== null && r.score !== undefined);
+    const avgScore = scored.length > 0
+      ? Math.round((scored.reduce((s, r) => s + (r.score || 0), 0) / scored.length) * 100) / 100
+      : null;
+    return res.json({
+      success: true,
+      data: rows,
+      stats: {
+        total, present, late, absent,
+        rate: total > 0 ? Math.round(((present + late) / total) * 100) : null,
+        avgScore,
+      },
+    });
+  } catch {
+    return res.status(500).json({ success: false, message: "Lỗi tải lịch sử điểm danh" });
+  }
+};
