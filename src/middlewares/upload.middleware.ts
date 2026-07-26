@@ -46,6 +46,13 @@ export const uploadImages = multer({
   limits: { fileSize: MAX_SIZE },
 }).array("images", 10);
 
+// Upload 1 ảnh nội dung (content image) → uploads/blog/, field "image"
+export const uploadContentImageFile = multer({
+  storage,
+  fileFilter,
+  limits: { fileSize: MAX_SIZE },
+}).single("image");
+
 // Upload avatar
 const avatarStorage = multer.diskStorage({
   destination: (_req, _file, cb) => {
