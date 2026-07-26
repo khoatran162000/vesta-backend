@@ -465,6 +465,7 @@ model Class {
   creator     User     @relation("ClassCreator", fields: [createdBy], references: [id])
   enrollments ClassEnrollment[]
   attendances Attendance[]
+  sessionDiaries SessionDiary[] @relation("ClassSessionDiaries")
   weeklyReports WeeklyReport[] @relation("ClassWeeklyReports")
   finalReports  FinalReport[]  @relation("ClassFinalReports")
   createdAt   DateTime @default(now())
@@ -488,6 +489,29 @@ model ClassEnrollment {
   @@index([classId])
   @@index([studentId])
   @@map("class_enrollments")
+}
+
+// ═══════════════════════ SESSION DIARY (nhật ký buổi học theo LỚP cụ thể) ═══════════════════════
+// Khác ClassDiary cũ (theo trình độ/course). Cái này gắn với 1 Class, tự đổ từ điểm danh.
+model SessionDiary {
+  id            String   @id @default(uuid())
+  classId       String
+  class         Class    @relation("ClassSessionDiaries", fields: [classId], references: [id], onDelete: Cascade)
+  sessionDate   DateTime                        // ngày buổi (chuẩn hoá 00:00 UTC, khớp Attendance)
+  sessionNumber Int?                            // buổi số
+  teacherName   String?
+  assistantName String?
+  content       String?  @db.Text              // nội dung học (mỗi dòng = 1 gạch đầu dòng)
+  homework      String?  @db.Text              // BTVN & dặn dò
+  students      Json?                           // [{ name, score, comment }]
+  logoUrl       String?
+  imageUrl      String?                         // ảnh minh hoạ
+  createdBy     String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  @@unique([classId, sessionDate])
+  @@index([classId])
+  @@map("session_diaries")
 }
 
 model Level {
