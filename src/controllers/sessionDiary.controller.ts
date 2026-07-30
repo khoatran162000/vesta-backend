@@ -71,6 +71,8 @@ export const getSessionDiary = async (req: Request, res: Response) => {
         classId,
         sessionDate,
         sessionNumber: null,
+        programKey: null,
+        currentLesson: null,
         teacherName: cls.teacher || "",
         assistantName: "",
         content: "",
@@ -93,13 +95,15 @@ export const getSessionDiary = async (req: Request, res: Response) => {
 // POST /api/session-diary — lưu (upsert theo classId + ngày)
 export const saveSessionDiary = async (req: Request, res: Response) => {
   try {
-    const { classId, date, sessionNumber, teacherName, assistantName, content, homework, students, logoUrl, imageUrl } = req.body;
+    const { classId, date, sessionNumber, programKey, currentLesson, teacherName, assistantName, content, homework, students, logoUrl, imageUrl } = req.body;
     const sessionDate = toSessionDate(date);
     if (!classId) return res.status(400).json({ success: false, message: "Thiếu lớp" });
     if (!sessionDate) return res.status(400).json({ success: false, message: "Ngày không hợp lệ" });
 
     const data = {
       sessionNumber: sessionNumber != null && sessionNumber !== "" ? Number(sessionNumber) : null,
+      programKey: programKey || null,
+      currentLesson: currentLesson != null && currentLesson !== "" ? Number(currentLesson) : null,
       teacherName: teacherName || null,
       assistantName: assistantName || null,
       content: content || null,

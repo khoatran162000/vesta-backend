@@ -499,6 +499,8 @@ model SessionDiary {
   class         Class    @relation("ClassSessionDiaries", fields: [classId], references: [id], onDelete: Cascade)
   sessionDate   DateTime                        // ngày buổi (chuẩn hoá 00:00 UTC, khớp Attendance)
   sessionNumber Int?                            // buổi số
+  programKey    String?                         // lộ trình: p4/p5/p6/p7/p789
+  currentLesson Int?                            // bài hiện tại (số thứ tự trong lộ trình)
   teacherName   String?
   assistantName String?
   content       String?  @db.Text              // nội dung học (mỗi dòng = 1 gạch đầu dòng)
