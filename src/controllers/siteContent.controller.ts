@@ -12,9 +12,15 @@ function parseJsonField(val: any, fallback: any) {
 // GET /site-content — tất cả khối (landing + admin đều gọi)
 export const listSiteContent = async (_req: Request, res: Response) => {
   try {
-    const data = await prisma.siteContent.findMany({ orderBy: { key: "asc" } });
-    return res.json({ success: true, data });
-  } catch {
+    // Chỉ lấy key + label (KHÔNG lấy `data` vì trang hướng dẫn nhập học chứa HTML rất nặng,
+    // trả cả list sẽ vỡ). Hub chỉ cần key/label; slug suy ra từ key.
+    const rows = await prisma.siteContent.findMany({
+      orderBy: { key: "asc" },
+      select: { id: true, key: true, label: true, updatedAt: true },
+    });
+    return res.json({ success: true, data: rows });
+  } catch (err) {
+    console.error("List site content error:", err);
     return res.status(500).json({ success: false, message: "Lỗi tải nội dung" });
   }
 };
