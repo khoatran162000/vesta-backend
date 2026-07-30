@@ -63,3 +63,16 @@ export const upsertSiteContent = async (req: Request, res: Response) => {
     return res.status(500).json({ success: false, message: "Lỗi lưu nội dung" });
   }
 };
+
+// DELETE /site-content/:key — xoá 1 khối (dùng cho trang hướng dẫn nhập học tự thêm)
+export const deleteSiteContent = async (req: Request, res: Response) => {
+  try {
+    const key = String(req.params.key);
+    const existing = await prisma.siteContent.findUnique({ where: { key } });
+    if (!existing) return res.status(404).json({ success: false, message: "Không tìm thấy" });
+    await prisma.siteContent.delete({ where: { key } });
+    return res.json({ success: true, message: "Đã xoá" });
+  } catch {
+    return res.status(500).json({ success: false, message: "Lỗi xoá nội dung" });
+  }
+};

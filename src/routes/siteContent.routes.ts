@@ -12,5 +12,6 @@ const cmsRoles = ["ADMIN", "CONTENT_CREATOR"];
 router.get("/", sc.listSiteContent);
 router.get("/:key", sc.getSiteContent);
 router.put("/:key", authenticate, authorize(...cmsRoles), uploadSiteFiles, sc.upsertSiteContent);
+router.delete("/:key", authenticate, authorize(...cmsRoles), sc.deleteSiteContent);
 
 export default router;
