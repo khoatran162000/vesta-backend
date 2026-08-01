@@ -186,6 +186,13 @@ export const updateOrder = async (req: Request, res: Response) => {
       if (status === "PAID") data.paidAt = new Date();
       if (status === "DELIVERED") data.deliveredAt = new Date();
     }
+    // Nếu giao đơn MUA TÀI LIỆU mà chưa có file giao → tự lấy file gốc của tài liệu
+    if (status === "DELIVERED" && !data.deliverUrl) {
+      const cur = await prisma.shopOrder.findUnique({ where: { id }, include: { item: true } });
+      if (cur?.kind === "MATERIAL" && !cur.deliverUrl && cur.item?.fileUrl) {
+        data.deliverUrl = cur.item.fileUrl;
+      }
+    }
     const o = await prisma.shopOrder.update({ where: { id }, data });
     return res.json({ success: true, data: o });
   } catch (err) {
