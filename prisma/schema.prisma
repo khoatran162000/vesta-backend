@@ -575,3 +575,36 @@ model Consultation {
   @@index([createdAt])
   @@map("consultations")
 }
+
+model ScheduleEntry {
+  id        String   @id @default(uuid())
+  weekStart String                          // thứ 2 đầu tuần "YYYY-MM-DD"
+  dayIndex  Int                             // 0=T2 ... 6=CN
+  slot      String                          // mã ca
+  room      String                          // tên phòng
+  className String                          // tên lớp/hoạt động
+  teacher   String                          // GV chính
+  assistant String   @default("")           // trợ giảng
+  tags      String   @default("[]")         // JSON mảng người thêm (ngắn, không cần Text)
+  note      String   @default("")           // ghi chú ngắn
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@unique([weekStart, dayIndex, slot, room])
+  @@index([weekStart])
+  @@map("schedule_entries")
+}
+
+model WeeklyTask {
+  id        String   @id @default(uuid())
+  weekStart String
+  title     String
+  owner     String
+  tags      String   @default("[]")
+  deadline  String
+  note      String   @default("")
+  completed Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([weekStart])
+  @@map("weekly_tasks")
+}
