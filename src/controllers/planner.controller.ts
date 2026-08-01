@@ -5,9 +5,10 @@ const prisma = new PrismaClient();
 
 // Khung giờ (khớp frontend). Dùng để kiểm tra trùng giờ.
 const SLOT_TIMES: Record<string, [number, number]> = {
-  morning: [8 * 60, 10 * 60], morning9: [9 * 60, 11 * 60], morning2: [10 * 60, 12 * 60],
-  afternoon: [13 * 60, 15 * 60], afternoon2: [15 * 60, 17 * 60], evening17: [17 * 60, 19 * 60],
-  early: [18 * 60, 20 * 60], evening19: [19 * 60, 21 * 60], late: [20 * 60, 22 * 60],
+  h8: [8 * 60, 9 * 60], h9: [9 * 60, 10 * 60], h10: [10 * 60, 11 * 60], h11: [11 * 60, 12 * 60],
+  h12: [12 * 60, 13 * 60], h13: [13 * 60, 14 * 60], h14: [14 * 60, 15 * 60], h15: [15 * 60, 16 * 60],
+  h16: [16 * 60, 17 * 60], h17: [17 * 60, 18 * 60], h18: [18 * 60, 19 * 60], h19: [19 * 60, 20 * 60],
+  h20: [20 * 60, 21 * 60], h21: [21 * 60, 22 * 60],
 };
 const DAYS = ["Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7", "Chủ nhật"];
 const overlaps = (a: string, b: string) => {
