@@ -108,3 +108,33 @@ export const uploadReportImageFile = multer({
   fileFilter,
   limits: { fileSize: MAX_SIZE },
 }).single("image");
+
+// ───────── Upload FILE tài liệu (PDF/docx/zip...) → uploads/materials/ ─────────
+const materialStorage = multer.diskStorage({
+  destination: (_req, _file, cb) => { cb(null, path.join(UPLOAD_DIR, "materials")); },
+  filename: (_req, file, cb) => {
+    const ext = path.extname(file.originalname).toLowerCase() || "";
+    cb(null, `${uuid()}${ext}`);
+  },
+});
+function docFileFilter(_req: any, file: Express.Multer.File, cb: multer.FileFilterCallback) {
+  const allowed = [
+    "application/pdf",
+    "application/msword",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document", // docx
+    "application/vnd.ms-powerpoint",
+    "application/vnd.openxmlformats-officedocument.presentationml.presentation", // pptx
+    "application/vnd.ms-excel",
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", // xlsx
+    "application/zip", "application/x-zip-compressed",
+    "image/jpeg", "image/png", "image/webp", // cho phép cả ảnh (đề thi scan...)
+  ];
+  if (allowed.includes(file.mimetype)) cb(null, true);
+  else cb(new Error("Chỉ nhận PDF, Word, PowerPoint, Excel, ZIP hoặc ảnh"));
+}
+// Field "file" → 1 tài liệu; giới hạn 50MB (tài liệu có thể nặng)
+export const uploadMaterialFile = multer({
+  storage: materialStorage,
+  fileFilter: docFileFilter,
+  limits: { fileSize: 50 * 1024 * 1024 },
+}).single("file");

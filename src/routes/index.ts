@@ -24,6 +24,7 @@ import levelRoutes from "./level.routes";
 import attendanceRoutes from "./attendance.routes";
 import sessionDiaryRoutes from "./sessionDiary.routes";
 import plannerRoutes from "./planner.routes";
+import materialRoutes from "./material.routes";
 const router = Router();
 router.use("/auth", authRoutes);
 router.use("/posts", postRoutes);
@@ -47,6 +48,7 @@ router.use("/site-content", siteContentRoutes);
 router.use("/attendance", attendanceRoutes);
 router.use("/session-diary", sessionDiaryRoutes);
 router.use("/planner", plannerRoutes);
+router.use("/", materialRoutes);
 router.use("/classes", classRoutes);
 router.use("/levels", levelRoutes);
 router.get("/health", (_req, res) => {

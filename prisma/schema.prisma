@@ -608,3 +608,49 @@ model WeeklyTask {
   @@index([weekStart])
   @@map("weekly_tasks")
 }
+
+model ShopItem {
+  id           String   @id @default(uuid())
+  title        String
+  description  String?  @db.Text
+  type         String   @default("FREE")   // FREE | PAID
+  price        Int      @default(0)         // VND
+  fileUrl      String?
+  thumbnailUrl String?
+  category     String?
+  published    Boolean  @default(true)
+  sortOrder    Int      @default(0)
+  downloadCount Int     @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  orders       ShopOrder[]
+  @@index([type])
+  @@index([published])
+  @@map("shop_items")
+}
+
+model ShopOrder {
+  id            String    @id @default(uuid())
+  code          String    @unique
+  kind          String                         // MATERIAL | GRADING
+  status        String    @default("PENDING")  // PENDING | PAID | DELIVERED | CANCELLED
+  customerName  String
+  customerEmail String
+  customerPhone String?
+  itemId        String?
+  item          ShopItem? @relation(fields: [itemId], references: [id])
+  gradingType   String?
+  essayText     String?   @db.Text
+  speakingLink  String?
+  amount        Int       @default(0)
+  deliverUrl    String?
+  adminNote     String?   @db.Text
+  paidAt        DateTime?
+  deliveredAt   DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  @@index([code])
+  @@index([status])
+  @@index([kind])
+  @@map("shop_orders")
+}
