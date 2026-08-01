@@ -19,6 +19,7 @@ router.delete("/materials/:id", authenticate, authorize(...cms), m.deleteMateria
 router.post("/orders", m.createOrder);
 router.get("/orders/track", m.trackOrder);
 // Đơn hàng — admin quản lý
+router.get("/orders/count-pending", authenticate, authorize(...cms), m.countPendingOrders);
 router.get("/orders", authenticate, authorize(...cms), m.listOrders);
 router.patch("/orders/:id", authenticate, authorize(...cms), uploadMaterialFile, m.updateOrder);
 

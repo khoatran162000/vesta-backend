@@ -200,3 +200,13 @@ export const updateOrder = async (req: Request, res: Response) => {
     return res.status(500).json({ success: false, message: "Lỗi cập nhật đơn" });
   }
 };
+
+// GET /api/orders/count-pending — admin: đếm đơn chờ xử lý (PENDING + PAID chưa giao)
+export const countPendingOrders = async (_req: Request, res: Response) => {
+  try {
+    const count = await prisma.shopOrder.count({ where: { status: { in: ["PENDING", "PAID"] } } });
+    return res.json({ success: true, data: { count } });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: "Lỗi đếm đơn" });
+  }
+};
