@@ -10,6 +10,7 @@ export interface GapDef {
   options?: string[];
   caseSensitive?: boolean;
   hint?: string;
+  group?: string;      // các ô cùng group = 1 câu "nhiều đáp án, không thứ tự"
 }
 
 export type GapMap = Record<string, GapDef>;
@@ -81,6 +82,7 @@ export function normalizeGaps(gaps: any): GapMap {
       options: Array.isArray(g.options) ? g.options : undefined,
       caseSensitive: !!g.caseSensitive,
       ...(g.hint ? { hint: String(g.hint) } : {}),
+      ...(g.group ? { group: String(g.group).trim() } : {}),   // giữ nhóm
     };
   }
   return out;
@@ -88,33 +90,88 @@ export function normalizeGaps(gaps: any): GapMap {
 
 /**
  * Chấm điểm: so từng gap với đáp án học viên.
- * @param gaps     định nghĩa gap (đã chuẩn hoá hoặc chưa — hàm tự chuẩn hoá)
+ * - Ô ĐƠN (không group): khớp bất kỳ đáp án nào trong mảng (như cũ).
+ * - Ô cùng GROUP = 1 câu nhiều đáp án không thứ tự: chấm theo TẬP dùng chung,
+ *   mỗi đáp án đúng chỉ tính 1 lần (HS điền A,A,A,A,A → chỉ 1 ô đúng).
  * @param answers  đáp án học viên: { "1": "Colour", "2": "here" }
  */
 export function gradeGaps(gaps: any, answers: any): GradeResult {
   const norm = normalizeGaps(gaps);
-  const detail: GapResult[] = [];
-  let score = 0;
+  const ids = Object.keys(norm);
 
-  for (const [id, g] of Object.entries(norm)) {
-    const studentRaw = answers?.[id];
-    const hasAnswer = studentRaw !== undefined && studentRaw !== null && String(studentRaw).trim() !== "";
-    const studentNorm = hasAnswer ? normalize(String(studentRaw), !!g.caseSensitive) : "";
-
-    const isCorrect =
-      hasAnswer &&
-      g.answers.some((a) => normalize(a, !!g.caseSensitive) === studentNorm);
-
-    if (isCorrect) score++;
-    detail.push({
-      id,
-      type: g.type,
-      studentAnswer: hasAnswer ? String(studentRaw) : null,
-      correctAnswers: g.answers,
-      isCorrect,
-    });
+  // Gom nhóm: cùng group → cùng một câu; không group → mỗi ô một "nhóm" riêng.
+  const buckets = new Map<string, string[]>();
+  for (const id of ids) {
+    const key = norm[id].group ? `G:${norm[id].group}` : `S:${id}`;
+    if (!buckets.has(key)) buckets.set(key, []);
+    buckets.get(key)!.push(id);
   }
 
+  const resultById: Record<string, GapResult> = {};
+  let score = 0;
+
+  for (const [key, gidList] of buckets) {
+    const grouped = key.startsWith("G:") && gidList.length > 1;
+
+    // ── Ô đơn: logic cũ ──
+    if (!grouped) {
+      const id = gidList[0];
+      const g = norm[id];
+      const studentRaw = answers?.[id];
+      const hasAnswer = studentRaw !== undefined && studentRaw !== null && String(studentRaw).trim() !== "";
+      const studentNorm = hasAnswer ? normalize(String(studentRaw), !!g.caseSensitive) : "";
+      const isCorrect = hasAnswer && g.answers.some((a) => normalize(a, !!g.caseSensitive) === studentNorm);
+      if (isCorrect) score++;
+      resultById[id] = {
+        id,
+        type: g.type,
+        studentAnswer: hasAnswer ? String(studentRaw) : null,
+        correctAnswers: g.answers,
+        isCorrect,
+      };
+      continue;
+    }
+
+    // ── Nhóm nhiều đáp án (không thứ tự): chấm theo TẬP, chống lặp ──
+    const caseSensitive = !!norm[gidList[0]].caseSensitive;
+    // Tập đáp án đúng dùng chung = HỢP tất cả đáp án của các ô trong nhóm.
+    const correctNormToDisplay = new Map<string, string>();
+    for (const gid of gidList) {
+      for (const a of norm[gid].answers) {
+        const n = normalize(a, caseSensitive);
+        if (n && !correctNormToDisplay.has(n)) correctNormToDisplay.set(n, a);
+      }
+    }
+    const correctDisplay = Array.from(correctNormToDisplay.values());
+    const used = new Set<string>();   // đáp án đã "dùng" → lần sau gõ lại không tính
+
+    // Chấm theo thứ tự id để ổn định.
+    const ordered = [...gidList].sort(
+      (a, b) => (parseInt(a, 10) || 0) - (parseInt(b, 10) || 0) || a.localeCompare(b)
+    );
+    for (const gid of ordered) {
+      const g = norm[gid];
+      const studentRaw = answers?.[gid];
+      const hasAnswer = studentRaw !== undefined && studentRaw !== null && String(studentRaw).trim() !== "";
+      const studentNorm = hasAnswer ? normalize(String(studentRaw), caseSensitive) : "";
+      let isCorrect = false;
+      if (hasAnswer && correctNormToDisplay.has(studentNorm) && !used.has(studentNorm)) {
+        isCorrect = true;
+        used.add(studentNorm);
+      }
+      if (isCorrect) score++;
+      resultById[gid] = {
+        id: gid,
+        type: g.type,
+        studentAnswer: hasAnswer ? String(studentRaw) : null,
+        correctAnswers: correctDisplay,   // cả tập, cho trang xem lại
+        isCorrect,
+      };
+    }
+  }
+
+  // Trả detail theo đúng thứ tự id gốc.
+  const detail: GapResult[] = ids.map((id) => resultById[id]).filter(Boolean);
   const maxScore = detail.length;
   const percent = maxScore > 0 ? Math.round((score / maxScore) * 100) : 0;
   return { score, maxScore, percent, detail };
@@ -139,6 +196,7 @@ function autoHint(answer: string): string {
  * Ẩn đáp án trong gaps khi trả về cho người ĐANG làm bài.
  * Giữ type + options (dropdown cần options để render), bỏ answers.
  * DROPDOWN không có options nhập tay → TỰ SINH đáp án nhiễu (auto-distractor).
+ * Ô thuộc NHÓM nhiều-đáp-án: KHÔNG auto-hint (tránh lộ chữ cái đáp án).
  */
 export function stripGapAnswers(gaps: any): any {
   if (!gaps || typeof gaps !== "object") return gaps;
@@ -146,8 +204,9 @@ export function stripGapAnswers(gaps: any): any {
   const allCorrect = collectCorrectAnswers(norm);
   const out: Record<string, any> = {};
   for (const [id, g] of Object.entries(norm)) {
-    // Gợi ý: ưu tiên hint tay; trống thì tự sinh từ đáp án đầu tiên
-    const hint = (g as any).hint?.trim() ? (g as any).hint.trim() : autoHint(g.answers[0] || "");
+    const explicitHint = (g as any).hint?.trim() ? (g as any).hint.trim() : "";
+    // Ô trong nhóm: chỉ dùng hint tay (nếu có), tuyệt đối không autoHint.
+    const hint = (g as any).group ? explicitHint : (explicitHint || autoHint(g.answers[0] || ""));
     if (g.type === "DRAG") {
       out[id] = { type: "DRAG", answers: Array.isArray(g.answers) ? g.answers : [], hint };
     } else if (g.type === "DROPDOWN") {
@@ -165,4 +224,4 @@ export function stripGapAnswers(gaps: any): any {
     }
   }
   return out;
-}                               
+}
