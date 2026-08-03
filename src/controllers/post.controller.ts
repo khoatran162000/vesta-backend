@@ -211,6 +211,40 @@ export async function createPost(req: Request, res: Response) {
   }
 }
 
+// POST /api/posts/:id/duplicate — nhân bản bài viết thành bản NHÁP mới (slug mới, chưa xuất bản)
+export async function duplicatePost(req: Request<Params>, res: Response) {
+  try {
+    const { id } = req.params;
+    const src = await prisma.post.findUnique({ where: { id } });
+    if (!src) return api.error(res, "Không tìm thấy bài viết gốc", 404);
+    const userId = (req as any).user?.userId as string;
+
+    // Sinh slug mới không đụng bản gốc: base-copy, base-copy-2, ...
+    const base = slugify(`${src.title}-copy`, { lower: true, strict: true, locale: "vi" }) || `bai-viet-copy`;
+    let slug = base;
+    for (let i = 2; await prisma.post.findUnique({ where: { slug } }); i++) slug = `${base}-${i}`;
+
+    const copy = await prisma.post.create({
+      data: {
+        authorId: userId || src.authorId,
+        title: `${src.title} (Copy)`,
+        slug,
+        excerpt: src.excerpt,
+        content: src.content,
+        thumbnailUrl: src.thumbnailUrl,
+        tags: src.tags as any,
+        status: "DRAFT",              // luôn nháp
+        visibility: src.visibility,
+        visibleTo: src.visibleTo,
+      },
+    });
+    return api.success(res, { id: copy.id }, "Đã nhân bản bài viết", 201);
+  } catch (err) {
+    console.error("Duplicate post error:", err);
+    return api.error(res, "Lỗi nhân bản bài viết", 500);
+  }
+}
+
 // PUT /api/posts/:id
 export async function updatePost(req: Request<Params>, res: Response) {
   try {

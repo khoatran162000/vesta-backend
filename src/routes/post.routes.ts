@@ -21,6 +21,7 @@ router.get("/detail/:slug", post.getPostBySlug);
 router.get("/admin/all", authenticate, authorize(...cmsRoles), post.listAllPosts);
 router.get("/admin/:id", authenticate, authorize(...cmsRoles), post.getPostById);
 router.post("/", authenticate, authorize(...cmsRoles), uploadThumbnail, post.createPost);
+router.post("/:id/duplicate", authenticate, authorize(...cmsRoles), post.duplicatePost);
 router.put("/:id", authenticate, authorize(...cmsRoles), uploadThumbnail, post.updatePost);
 router.delete("/:id", authenticate, authorize(...cmsRoles), post.deletePost);
 

@@ -185,3 +185,31 @@ export const deleteFinalReport = async (req: Request, res: Response) => {
     return res.status(500).json({ success: false, message: "Lỗi xoá báo cáo" });
   }
 };
+
+// ─── Duplicate (staff): nhân bản 1 báo cáo thành bản NHÁP mới ───
+export const duplicateFinalReport = async (req: Request, res: Response) => {
+  try {
+    const id = String(req.params.id);
+    const src = await prisma.finalReport.findUnique({ where: { id } });
+    if (!src) return res.status(404).json({ success: false, message: "Không tìm thấy báo cáo gốc" });
+    const copy = await prisma.finalReport.create({
+      data: {
+        studentId: src.studentId,
+        classId: src.classId,
+        course: src.course,
+        learnclickUser: src.learnclickUser,
+        skillGrid: (src.skillGrid ?? null) as any,
+        review: (src.review ?? null) as any,
+        prediction: (src.prediction ?? null) as any,
+        orientation: (src.orientation ?? null) as any,
+        html: src.html,
+        shareToken: genToken(),        // token MỚI: bản sao có link chia sẻ riêng
+        status: "DRAFT",               // luôn về nháp để chị sửa rồi mới xuất bản
+        createdBy: uid(req),
+      },
+    });
+    return res.status(201).json({ success: true, data: { id: copy.id } });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: "Lỗi nhân bản báo cáo" });
+  }
+};

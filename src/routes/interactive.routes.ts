@@ -20,6 +20,7 @@ router.get("/my/attempts", authenticate, ix.getMyAttempts);
 router.get("/:id/attempts", authenticate, authorize(...staff), ix.getExerciseAttempts);
 // Bài tập = nội dung của trung tâm: chỉ ADMIN tạo/sửa/xoá
 router.post("/", authenticate, authorize("ADMIN"), ix.createExercise);
+router.post("/:id/duplicate", authenticate, authorize("ADMIN"), ix.duplicateExercise);
 router.put("/:id", authenticate, authorize("ADMIN"), ix.updateExercise);
 router.delete("/:id", authenticate, authorize("ADMIN"), ix.deleteExercise);
 export default router;

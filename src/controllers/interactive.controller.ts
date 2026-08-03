@@ -492,3 +492,36 @@ export const openNoWorkStats = async (_req: Request, res: Response) => {
     return res.status(500).json({ success: false, message: "Lỗi thống kê" });
   }
 };
+
+// POST /api/interactive/:id/duplicate — nhân bản bài tập thành bản NHÁP mới (chưa đăng)
+export const duplicateExercise = async (req: Request, res: Response) => {
+  try {
+    const id = String(req.params.id);
+    const src = await prisma.interactiveExercise.findUnique({ where: { id } });
+    if (!src) return res.status(404).json({ success: false, message: "Không tìm thấy bài tập gốc" });
+    const userId = uid(req);
+    const copy = await prisma.interactiveExercise.create({
+      data: {
+        postId: src.postId,
+        title: `${src.title} (Copy)`,
+        description: src.description,
+        type: src.type,
+        questions: (src.questions ?? Prisma.JsonNull) as any,
+        content: src.content,
+        gaps: (src.gaps ?? Prisma.JsonNull) as any,
+        distractors: (src.distractors ?? Prisma.JsonNull) as any,
+        visibility: src.visibility,
+        visibleTo: src.visibleTo,
+        isPublished: false,           // luôn nháp
+        orderIndex: src.orderIndex,
+        timeLimit: src.timeLimit,
+        maxAttempts: src.maxAttempts,
+        createdBy: userId as string,
+      },
+    });
+    return res.status(201).json({ success: true, data: { id: copy.id } });
+  } catch (error) {
+    console.error("Duplicate exercise error:", error);
+    return res.status(500).json({ success: false, message: "Lỗi nhân bản bài tập" });
+  }
+};

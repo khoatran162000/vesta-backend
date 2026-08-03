@@ -12,6 +12,7 @@ router.get("/share/:token", fr.getShareReport);
 router.get("/my", authenticate, fr.getMyFinalReports);
 router.get("/", authenticate, authorize(...staff), fr.listFinalReports);
 router.post("/", authenticate, authorize(...staff), fr.createFinalReport);
+router.post("/:id/duplicate", authenticate, authorize(...staff), fr.duplicateFinalReport);
 router.put("/:id", authenticate, authorize(...staff), fr.updateFinalReport);
 router.delete("/:id", authenticate, authorize(...staff), fr.deleteFinalReport);
 router.get("/:id", authenticate, fr.getFinalReport);
