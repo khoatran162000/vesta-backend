@@ -112,6 +112,56 @@ export const updatePlanner = async (req: Request, res: Response) => {
   }
 };
 
+// POST /api/planner/carry-over — ADMIN: chép lịch dạy + việc CHƯA XONG từ tuần liền trước sang tuần hiện tại
+export const carryOverPlanner = async (req: Request, res: Response) => {
+  try {
+    const week = String(req.body.week || "");
+    if (!week) return res.status(400).json({ success: false, message: "Thiếu tuần" });
+    // Tuần liền trước = week - 7 ngày (dùng giờ trưa để tránh lệch múi giờ)
+    const d = new Date(week + "T12:00:00");
+    d.setDate(d.getDate() - 7);
+    const prev = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+
+    // Không chép đè: nếu tuần hiện tại đã có lịch dạy thì dừng (tránh nhân đôi)
+    const existing = await prisma.scheduleEntry.count({ where: { weekStart: week } });
+    if (existing > 0) {
+      return res.status(409).json({ success: false, message: "Tuần này đã có lịch — không chép đè để tránh trùng." });
+    }
+
+    const [srcSchedule, srcTasks] = await Promise.all([
+      prisma.scheduleEntry.findMany({ where: { weekStart: prev } }),
+      prisma.weeklyTask.findMany({ where: { weekStart: prev, completed: false } }),
+    ]);
+
+    if (srcSchedule.length === 0 && srcTasks.length === 0) {
+      return res.json({ success: true, data: { schedule: 0, tasks: 0 }, message: "Tuần trước không có gì để chép." });
+    }
+
+    // Chép lịch dạy (giữ nguyên ngày/ca/phòng/người), đổi weekStart
+    if (srcSchedule.length > 0) {
+      await prisma.scheduleEntry.createMany({
+        data: srcSchedule.map((s) => ({
+          weekStart: week, dayIndex: s.dayIndex, slot: s.slot, room: s.room,
+          className: s.className, teacher: s.teacher, assistant: s.assistant, tags: s.tags, note: s.note,
+        })),
+      });
+    }
+    // Chép việc CHƯA XONG (giữ deadline gốc để còn thấy quá hạn), completed=false
+    if (srcTasks.length > 0) {
+      await prisma.weeklyTask.createMany({
+        data: srcTasks.map((t) => ({
+          weekStart: week, title: t.title, owner: t.owner, tags: t.tags,
+          deadline: t.deadline, note: t.note, completed: false,
+        })),
+      });
+    }
+    return res.json({ success: true, data: { schedule: srcSchedule.length, tasks: srcTasks.length } });
+  } catch (err) {
+    console.error("Carry-over planner error:", err);
+    return res.status(500).json({ success: false, message: "Lỗi kế thừa tuần trước" });
+  }
+};
+
 // DELETE /api/planner  — ADMIN. body { type, id }
 export const deletePlanner = async (req: Request, res: Response) => {
   try {
