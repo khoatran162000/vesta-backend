@@ -189,7 +189,7 @@ model Notification {
   userId    String
   user      User             @relation(fields: [userId], references: [id])
   title     String
-  message   String           @db.Text
+  message   String           @db.LongText
   isRead    Boolean          @default(false)
   type      NotificationType
   link      String?
