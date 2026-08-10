@@ -33,6 +33,17 @@ export async function listUsers(req: Request, res: Response) {
     const search = req.query.search as string;
     const skip = (page - 1) * limit;
     const where: any = {};
+    // all=true → tra TOAN BO (dung cho gui thong bao: khong phan trang, khong loc isActive)
+    if (req.query.all === "true") {
+      const wAll: any = {};
+      if (role) wAll.role = role;
+      const allUsers = await prisma.user.findMany({
+        where: wAll,
+        orderBy: { fullName: "asc" },
+        select: { id: true, fullName: true, email: true, studentCode: true, course: true, role: true, isActive: true },
+      });
+      return api.success(res, allUsers);
+    }
     // Mặc định chỉ hiện HS đang hoạt động; ?includeHidden=1 để xem cả HS đã ẩn
     if (req.query.includeHidden !== "1") where.isActive = true;
     if (role) where.role = role;
