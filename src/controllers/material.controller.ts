@@ -2,6 +2,8 @@
 // Model: ShopItem (shop_items) + ShopOrder (shop_orders) — tách hẳn Material cũ (giáo trình).
 import { Request, Response } from "express";
 import prisma from "../config/database";
+import bcrypt from "bcryptjs";
+import { generateStudentCode } from "./user.controller";
 
 // Sinh mã đơn ngắn, dễ đọc (nội dung CK)
 function genCode(): string {
@@ -129,7 +131,41 @@ export const createOrder = async (req: Request, res: Response) => {
         amount,
       },
     });
-    return res.status(201).json({ success: true, data: { code: order.code, amount: order.amount, id: order.id } });
+    // ── C1: tao TK hoc vien "cham bai" + thong bao (khong chan neu loi) ──
+    let account: { studentCode: string | null; tempPassword?: string; isNew: boolean } | null = null;
+    if (kind === "GRADING") {
+      try {
+        const emailNorm = String(customerEmail).trim().toLowerCase();
+        let user = await prisma.user.findFirst({ where: { email: emailNorm } });
+        if (!user) {
+          const studentCode = await generateStudentCode();
+          const tempPassword = Math.random().toString(36).slice(-8);
+          const passwordHash = await bcrypt.hash(tempPassword, 12);
+          user = await prisma.user.create({
+            data: {
+              email: emailNorm, studentCode, passwordHash,
+              fullName: String(customerName).trim(),
+              phone: customerPhone || null,
+              role: "STUDENT", regStatus: "GRADING_ONLY", isActive: true,
+            },
+          });
+          account = { studentCode, tempPassword, isNew: true };
+        } else {
+          account = { studentCode: user.studentCode, isNew: false };
+        }
+        await prisma.notification.create({
+          data: {
+            userId: user.id,
+            type: "SYSTEM_AUTO",
+            title: "Đã nhận bài chấm chữa",
+            message: `Chúng tôi đã nhận bài của bạn (mã đơn ${order.code}). Giáo viên sẽ chấm và trả kết quả tại đây — vui lòng theo dõi mục Thông báo.`,
+          },
+        });
+      } catch (e) {
+        console.error("Tao TK cham bai loi (bo qua, don van tao):", e);
+      }
+    }
+    return res.status(201).json({ success: true, data: { code: order.code, amount: order.amount, id: order.id, account } });
   } catch (err) {
     console.error("Create order error:", err);
     return res.status(500).json({ success: false, message: "Lỗi tạo đơn" });

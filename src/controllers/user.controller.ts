@@ -9,7 +9,7 @@ type Params = { [key: string]: string };
  * Tự động tạo mã học viên tiếp theo (kiểu cũ VS + năm + số) — GIỮ làm fallback
  * khi không có đủ thông tin lớp/ngày để dùng công thức mới.
  */
-async function generateStudentCode(): Promise<string> {
+export async function generateStudentCode(): Promise<string> {
   const year = new Date().getFullYear();
   const prefix = `VS${year}`;
   const lastStudent = await prisma.user.findFirst({
