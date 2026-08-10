@@ -71,7 +71,7 @@ export const getClass = async (req: Request, res: Response) => {
       where: { id },
       include: {
         enrollments: {
-          include: { student: { select: { id: true, fullName: true, studentCode: true, course: true, email: true } } },
+          include: { student: { select: { id: true, fullName: true, studentCode: true, course: true, email: true, phone: true } } },
           orderBy: { joinedAt: "asc" },
         },
         creator: { select: { fullName: true } },
