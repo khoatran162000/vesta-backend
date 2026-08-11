@@ -17,5 +17,7 @@ router.patch("/read-all", notification.markAllAsRead);
 // Chỉ ADMIN + TEACHER mới gửi và xem lịch sử gửi
 router.post("/send", authorize("ADMIN", "TEACHER"), notification.sendNotification);
 router.get("/admin/sent", authorize("ADMIN", "TEACHER"), notification.listSentNotifications);
+router.get("/templates", authorize("ADMIN", "TEACHER"), notification.getTemplates);
+router.post("/templates", authorize("ADMIN", "TEACHER"), notification.saveTemplates);
 
 export default router;

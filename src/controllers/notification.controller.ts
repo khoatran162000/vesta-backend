@@ -135,3 +135,29 @@ export async function listSentNotifications(req: Request, res: Response) {
     return api.error(res, "Lỗi server", 500);
   }
 }
+
+// ─── Mẫu thông báo (lưu chung 1 key SiteContent: notification_templates) ───
+// GET /api/notifications/templates
+export async function getTemplates(_req: Request, res: Response) {
+  try {
+    const row = await prisma.siteContent.findUnique({ where: { key: "notification_templates" } });
+    const list = row && Array.isArray(row.data) ? (row.data as any[]) : [];
+    return res.json({ success: true, data: list });
+  } catch (err) {
+    return api.error(res, "Lỗi server", 500);
+  }
+}
+// POST /api/notifications/templates  Body: { templates: [{id,name,title,html}] }
+export async function saveTemplates(req: Request, res: Response) {
+  try {
+    const templates = Array.isArray(req.body.templates) ? req.body.templates : [];
+    const row = await prisma.siteContent.upsert({
+      where: { key: "notification_templates" },
+      update: { data: templates, label: "Mẫu thông báo" },
+      create: { key: "notification_templates", label: "Mẫu thông báo", data: templates },
+    });
+    return res.json({ success: true, data: row.data });
+  } catch (err) {
+    return api.error(res, "Lỗi server", 500);
+  }
+}
