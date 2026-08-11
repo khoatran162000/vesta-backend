@@ -4,6 +4,7 @@ import bcrypt from "bcryptjs";
 import prisma from "../config/database";
 import * as api from "../utils/apiResponse";
 import { generateUniqueStudentCode } from "../lib/studentCode";
+import { pushWelcomeIfNeeded } from "../lib/welcome-notify";
 type Params = { [key: string]: string };
 /**
  * Tự động tạo mã học viên tiếp theo (kiểu cũ VS + năm + số) — GIỮ làm fallback
@@ -143,6 +144,7 @@ export async function createUser(req: Request, res: Response) {
           phone: true, address: true, course: true, role: true, isActive: true, createdAt: true,
         },
       });
+      await pushWelcomeIfNeeded(prisma, user.id);
       return api.created(res, { ...user, password: rawPassword }, `Tạo học viên thành công. Mã HV: ${code}`);
     } else {
       // Staff: bắt buộc có email
@@ -197,6 +199,7 @@ export async function updateUser(req: Request<Params>, res: Response) {
         phone: true, address: true, course: true, role: true, isActive: true, regStatus: true, createdAt: true,
       },
     });
+    await pushWelcomeIfNeeded(prisma, user.id);
     return api.success(res, user, "Cập nhật tài khoản thành công");
   } catch (err) {
     return api.error(res, "Lỗi server", 500);
@@ -362,6 +365,7 @@ export async function bulkCreateStudents(req: Request, res: Response) {
         },
         select: { id: true, studentCode: true, fullName: true },
       });
+      await pushWelcomeIfNeeded(prisma, user.id);
 
       // đánh dấu đã dùng, để chặn trùng trong cùng file
       if (phone) seenPhones.add(phone);

@@ -60,6 +60,7 @@ model User {
   lastFlagCheck DateTime?                   // tuần gần nhất đã quét (chạy bù nếu server restart lỡ nhịp)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
+  welcomeNotifiedAt DateTime?              // Phần 3: cờ chống gửi trùng thông báo chào mừng
   // Relations
   posts               Post[]
   examAttempts        ExamAttempt[]
