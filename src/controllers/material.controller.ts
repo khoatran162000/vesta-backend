@@ -233,6 +233,29 @@ export const updateOrder = async (req: Request, res: Response) => {
       }
     }
     const o = await prisma.shopOrder.update({ where: { id }, data });
+    // ── Phần D: trả bài chấm → báo HV khi đơn GRADING chuyển DELIVERED (dedup theo mã đơn) ──
+    if (status === "DELIVERED" && o.kind === "GRADING") {
+      try {
+        const student = await prisma.user.findFirst({ where: { email: o.customerEmail.toLowerCase() } });
+        if (student) {
+          const dup = await prisma.notification.findFirst({
+            where: { userId: student.id, title: "Bài chấm chữa của bạn đã có kết quả", message: { contains: o.code } },
+          });
+          if (!dup) {
+            await prisma.notification.create({
+              data: {
+                userId: student.id,
+                type: "SYSTEM_AUTO",
+                title: "Bài chấm chữa của bạn đã có kết quả",
+                message: `Giáo viên đã chấm xong bài của bạn (mã đơn ${o.code}). Vào mục Chấm bài trong tài khoản để xem nhận xét và tải kết quả.`,
+              },
+            });
+          }
+        }
+      } catch (e) {
+        console.error("Notify trả bài lỗi (bỏ qua):", e);
+      }
+    }
     return res.json({ success: true, data: o });
   } catch (err) {
     console.error("Update order error:", err);
