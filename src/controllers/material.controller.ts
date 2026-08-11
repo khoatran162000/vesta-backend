@@ -4,6 +4,7 @@ import { Request, Response } from "express";
 import prisma from "../config/database";
 import bcrypt from "bcryptjs";
 import { generateStudentCode } from "./user.controller";
+import { sendNewAccountMail } from "../utils/mailer";
 
 // Sinh mã đơn ngắn, dễ đọc (nội dung CK)
 function genCode(): string {
@@ -150,6 +151,8 @@ export const createOrder = async (req: Request, res: Response) => {
             },
           });
           account = { studentCode, tempPassword, isNew: true };
+          // gửi email TK (khong chan neu loi)
+          sendNewAccountMail(emailNorm, String(customerName).trim(), studentCode, tempPassword).catch(() => {});
         } else {
           account = { studentCode: user.studentCode, isNew: false };
         }
