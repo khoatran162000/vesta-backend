@@ -1,6 +1,7 @@
 // FILE: src/jobs/scheduler.ts — Khoi dong cronjob (khong dung node-cron, tu tinh lich)
 import { runWeeklyStudyCheck } from "./weeklyStudyCheck";
 import { runOpenNoWorkCheck } from "./openNoWorkCheck";
+import { runOpeningReminderCheck } from "./openingReminderCheck";
 import prisma from "../config/database";
 
 const HOUR = 3600 * 1000;
@@ -61,5 +62,17 @@ export function startScheduler() {
     } catch (e) { console.error("[Scheduler] Lỗi cron mở-không-làm:", e); }
   }, HOUR);
 
-  console.log("[Scheduler] Đã đăng ký: quét tiến độ (3 ngày/lần) + quét mở-không-làm (mỗi ngày)");
+  // 4) Nhắc trước khai giảng mỗi ngày (giờ server >=1h ≈ 8h VN): lớp ACTIVE có startDate còn T-3/T-1 → nhắc HV ghi danh.
+  let lastOpeningCheckDay = -1;
+  setInterval(async () => {
+    try {
+      const now = new Date();
+      if (now.getHours() >= 1 && now.getDate() !== lastOpeningCheckDay) {
+        lastOpeningCheckDay = now.getDate();
+        console.log("[Scheduler] Nhắc trước khai giảng...");
+        await runOpeningReminderCheck();
+      }
+    } catch (e) { console.error("[Scheduler] Lỗi cron nhắc khai giảng:", e); }
+  }, HOUR);
+  console.log("[Scheduler] Đã đăng ký: quét tiến độ (3 ngày/lần) + quét mở-không-làm + nhắc khai giảng (mỗi ngày)");
 }
