@@ -80,6 +80,7 @@ model User {
   enrollments          ClassEnrollment[] @relation("StudentEnrollments")
   attendances       Attendance[] @relation("StudentAttendance")
   markedAttendances Attendance[] @relation("AttendanceMarker")
+  vestaMessages     VestaMessage[]   @relation("VestaMessages")
   @@index([role])
   @@index([isActive])
   @@index([studentCode])
@@ -654,4 +655,19 @@ model ShopOrder {
   @@index([status])
   @@index([kind])
   @@map("shop_orders")
+}
+
+model VestaMessage {
+  id         String    @id @default(uuid())
+  studentId  String
+  student    User      @relation("VestaMessages", fields: [studentId], references: [id], onDelete: Cascade)
+  category   String    @default("SHARE")   // QUESTION | SHARE | SUGGEST
+  content    String    @db.Text
+  status     String    @default("NEW")     // NEW | READ | REPLIED
+  adminReply String?   @db.Text
+  repliedAt  DateTime?
+  createdAt  DateTime  @default(now())
+  @@index([studentId])
+  @@index([status])
+  @@map("vesta_messages")
 }

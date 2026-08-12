@@ -3,6 +3,7 @@
 import { Router } from "express";
 import { authenticate } from "../middlewares/auth.middleware";
 import * as student from "../controllers/student.controller";
+import * as vm from "../controllers/vestaMessage.controller";
 
 const router = Router();
 
@@ -30,5 +31,8 @@ router.get("/history/:attemptId", student.getAttemptReview);
 // ─── Notifications ───
 router.get("/notifications", student.getNotifications);
 router.patch("/notifications/read-all", student.markAllRead);
+// ─── Tâm sự với Vesta ───
+router.post("/vesta-messages", vm.createMessage);
+router.get("/vesta-messages", vm.listMyMessages);
 
 export default router;
