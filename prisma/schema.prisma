@@ -212,6 +212,7 @@ model ClassDiary {
   teacherNote String?  @db.Text
   contentHtml String?  @db.LongText
   scoreTable  Json?
+  classIds    Json?         // [classId,...] — trống = áp cả khoá; có = chỉ HS lớp đó thấy
   createdBy   String
   creator     User     @relation("DiaryCreator", fields: [createdBy], references: [id])
   createdAt   DateTime @default(now())
