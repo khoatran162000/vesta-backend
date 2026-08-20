@@ -115,6 +115,43 @@ export async function updateExam(req: Request<Params>, res: Response) {
   }
 }
 // DELETE /api/exams/:id
+// POST /api/exams/:id/duplicate — nhân bản đề + toàn bộ câu hỏi (ra bản nháp)
+export async function duplicateExam(req: Request<Params>, res: Response) {
+  try {
+    const { id } = req.params;
+    const src = await prisma.exam.findUnique({ where: { id }, include: { questions: { orderBy: { orderIndex: "asc" } } } });
+    if (!src) return api.error(res, "Đề thi không tồn tại", 404);
+    const copy = await prisma.exam.create({
+      data: {
+        categoryId: src.categoryId,
+        title: `${src.title} (Copy)`,
+        description: src.description,
+        duration: src.duration,
+        totalScore: src.totalScore,
+        maxAttempts: src.maxAttempts,
+        status: "DRAFT",
+        questions: {
+          create: src.questions.map((q) => ({
+            type: q.type,
+            content: q.content,
+            mediaUrl: q.mediaUrl,
+            options: (q.options ?? undefined) as any,
+            correctAnswer: q.correctAnswer as any,
+            gaps: (q.gaps ?? undefined) as any,
+            explanation: q.explanation,
+            orderIndex: q.orderIndex,
+            score: q.score,
+          })),
+        },
+      },
+      include: { category: { select: { id: true, name: true } }, _count: { select: { questions: true, examAttempts: true } } },
+    });
+    return api.created(res, copy, "Đã nhân bản đề thi (bản nháp)");
+  } catch (err) {
+    console.error("Duplicate exam error:", err);
+    return api.error(res, "Lỗi nhân bản đề thi", 500);
+  }
+}
 export async function deleteExam(req: Request<Params>, res: Response) {
   try {
     const id = req.params.id as string;

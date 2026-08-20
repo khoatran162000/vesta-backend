@@ -19,6 +19,7 @@ router.get("/:id", authorize(...staff), exam.getExamById);
 
 router.post("/", authorize("ADMIN"), exam.createExam);
 router.put("/:id", authorize("ADMIN"), exam.updateExam);
+router.post("/:id/duplicate", authorize("ADMIN"), exam.duplicateExam);
 router.delete("/:id", authorize("ADMIN"), exam.deleteExam);
 
 export default router;
