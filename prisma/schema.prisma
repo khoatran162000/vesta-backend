@@ -647,6 +647,7 @@ model ShopOrder {
   speakingLink  String?
   amount        Int       @default(0)
   deliverUrl    String?
+  resultHtml    String?   @db.LongText   // bài chữa dạng text/HTML (ngoài file)
   adminNote     String?   @db.Text
   paidAt        DateTime?
   deliveredAt   DateTime?

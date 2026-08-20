@@ -189,6 +189,7 @@ export const trackOrder = async (req: Request, res: Response) => {
         code: o.code, kind: o.kind, status: o.status, amount: o.amount,
         materialTitle: o.item?.title || null, gradingType: o.gradingType,
         deliverUrl: o.status === "DELIVERED" ? o.deliverUrl : null,  // chỉ trả link khi đã giao
+        resultHtml: o.status === "DELIVERED" ? o.resultHtml : null,  // bài chữa text/HTML khi đã giao
         createdAt: o.createdAt,
       },
     });
@@ -214,11 +215,12 @@ export const listOrders = async (req: Request, res: Response) => {
 export const updateOrder = async (req: Request, res: Response) => {
   try {
     const id = String(req.params.id);
-    const { status, amount, deliverUrl, adminNote } = req.body;
+    const { status, amount, deliverUrl, adminNote, resultHtml } = req.body;
     const data: any = {};
     if (amount !== undefined) data.amount = Math.max(0, Number(amount) || 0);
     if (adminNote !== undefined) data.adminNote = adminNote || null;
     if (deliverUrl !== undefined) data.deliverUrl = deliverUrl || null;
+    if (resultHtml !== undefined) data.resultHtml = resultHtml || null;
     if ((req as any).file) data.deliverUrl = `/uploads/materials/${(req as any).file.filename}`;
     if (status) {
       data.status = status;
