@@ -161,6 +161,7 @@ export const createOrder = async (req: Request, res: Response) => {
             userId: user.id,
             type: "SYSTEM_AUTO",
             title: "Đã nhận bài chấm chữa",
+            link: "/bai-cham",
             message: `Chúng tôi đã nhận bài của bạn (mã đơn ${order.code}). Giáo viên sẽ chấm và trả kết quả tại đây — vui lòng theo dõi mục Thông báo.`,
           },
         });
@@ -249,6 +250,7 @@ export const updateOrder = async (req: Request, res: Response) => {
                 userId: student.id,
                 type: "SYSTEM_AUTO",
                 title: "Bài chấm chữa của bạn đã có kết quả",
+                link: "/bai-cham",
                 message: `Giáo viên đã chấm xong bài của bạn (mã đơn ${o.code}). Vào mục Chấm bài trong tài khoản để xem nhận xét và tải kết quả.`,
               },
             });

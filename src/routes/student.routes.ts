@@ -28,6 +28,8 @@ router.post("/attempts/:attemptId/submit", student.submitExam);
 router.get("/history", student.getHistory);
 router.get("/history/:attemptId", student.getAttemptReview);
 
+// ─── Chấm bài (Bài chấm) ───
+router.get("/grading-orders", student.getGradingOrders);
 // ─── Notifications ───
 router.get("/notifications", student.getNotifications);
 router.patch("/notifications/read-all", student.markAllRead);

@@ -469,3 +469,32 @@ export async function markAllRead(req: Request, res: Response) {
     return api.error(res, "Lỗi server", 500);
   }
 }
+
+
+// ═══════════════════════ CHẤM BÀI (Bài chấm) ═══════════════════════
+// GET /api/student/grading-orders — HS xem đơn chấm bài của chính mình (theo email tài khoản)
+export async function getGradingOrders(req: Request, res: Response) {
+  try {
+    const userId = req.user!.userId;
+    const user = await prisma.user.findUnique({ where: { id: userId }, select: { email: true } });
+    if (!user?.email) return res.json({ success: true, data: [] });
+    const orders = await prisma.shopOrder.findMany({
+      where: { kind: "GRADING", customerEmail: user.email },
+      orderBy: { createdAt: "desc" },
+      select: {
+        id: true, code: true, status: true, gradingType: true, amount: true,
+        createdAt: true, deliveredAt: true, deliverUrl: true, resultHtml: true,
+      },
+    });
+    const data = orders.map((o) => ({
+      id: o.id, code: o.code, status: o.status, gradingType: o.gradingType,
+      amount: o.amount, createdAt: o.createdAt, deliveredAt: o.deliveredAt,
+      deliverUrl: o.status === "DELIVERED" ? o.deliverUrl : null,
+      resultHtml: o.status === "DELIVERED" ? o.resultHtml : null,
+    }));
+    return res.json({ success: true, data });
+  } catch (err) {
+    console.error("getGradingOrders error:", err);
+    return res.status(500).json({ success: false, message: "Lỗi tải đơn chấm bài" });
+  }
+}
