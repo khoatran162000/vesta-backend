@@ -44,7 +44,12 @@ const limiter = rateLimit({
 // Chặt riêng cho đăng nhập (chống dò mật khẩu) — nới nhẹ để admin gõ nhầm vài lần không bị khoá
 app.use("/api/auth/login", rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 20,
+  max: 30, // theo TỪNG mã học viên (không theo IP) — cả lớp chung 1 mạng vẫn login được
+  keyGenerator: (req) => {
+    const code = req.body && (req.body as any).studentCode;
+    return code ? "login:" + String(code).toLowerCase().trim() : "login-ip:" + (req.ip || "unknown");
+  },
+  validate: false,
   standardHeaders: true,
   legacyHeaders: false,
   message: { success: false, message: "Quá nhiều lần đăng nhập, vui lòng thử lại sau 15 phút." },
