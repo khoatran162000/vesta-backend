@@ -26,7 +26,7 @@ export async function login(req: Request, res: Response) {
     let user;
 
     if (studentCode) {
-      user = await prisma.user.findUnique({ where: { studentCode } });
+      user = await prisma.user.findUnique({ where: { studentCode: String(studentCode).trim() } });
       if (!user) return api.error(res, "Mã học viên không tồn tại", 401);
     } else {
       user = await prisma.user.findUnique({ where: { email } });

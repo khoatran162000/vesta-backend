@@ -110,7 +110,7 @@ export async function createUser(req: Request, res: Response) {
     if (role === "STUDENT") {
       const start = startDate ? new Date(startDate) : new Date();
       // Mã HV: admin gõ tay thì dùng (kiểm trùng), không thì sinh theo công thức {tên}{lớp}{ddmmyy}
-      let code = studentCode;
+      let code = studentCode ? String(studentCode).trim() : studentCode;
       if (code) {
         const existingCode = await prisma.user.findUnique({ where: { studentCode: code } });
         if (existingCode) return api.error(res, `Mã học viên ${code} đã tồn tại`, 409);
@@ -185,11 +185,14 @@ export async function updateUser(req: Request<Params>, res: Response) {
     if (regStatus !== undefined) updateData.regStatus = regStatus || null;
     if (course !== undefined) updateData.course = course || null;
     // Sửa mã HV sau khi tạo — kiểm trùng (trừ chính nó)
-    if (studentCode !== undefined && studentCode !== existing.studentCode) {
-      if (!studentCode) return api.error(res, "Mã học viên không được để trống");
-      const dup = await prisma.user.findUnique({ where: { studentCode } });
-      if (dup && dup.id !== id) return api.error(res, `Mã học viên ${studentCode} đã tồn tại`, 409);
-      updateData.studentCode = studentCode;
+    if (studentCode !== undefined) {
+      const codeT = String(studentCode).trim();
+      if (codeT !== existing.studentCode) {
+        if (!codeT) return api.error(res, "Mã học viên không được để trống");
+        const dup = await prisma.user.findUnique({ where: { studentCode: codeT } });
+        if (dup && dup.id !== id) return api.error(res, `Mã học viên ${codeT} đã tồn tại`, 409);
+        updateData.studentCode = codeT;
+      }
     }
     const user = await prisma.user.update({
       where: { id },
