@@ -335,6 +335,7 @@ model ClassSchedule {
 model WeeklyReport {
   id             String    @id @default(uuid())
   studentId      String?
+  studentName    String?
   student        User?      @relation("StudentReport", fields: [studentId], references: [id], onDelete: Cascade)
   course         String?
   learnclickUser String?
