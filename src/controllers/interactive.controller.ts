@@ -62,7 +62,6 @@ function hasLimits(ex: any): boolean {
 // ─── List exercises ───
 export const listExercises = async (req: Request, res: Response) => {
   try {
-    const user = (req as any).user;
     const { postId } = req.query;
     const where: any = await getVisibilityFilter(req);
     if (postId) where.postId = postId;
@@ -71,16 +70,17 @@ export const listExercises = async (req: Request, res: Response) => {
       orderBy: { orderIndex: "asc" },
       include: { creator: { select: { fullName: true } } },
     });
-    const isStaff = user?.role === "ADMIN" || user?.role === "TEACHER";
     const safe = data.map((ex) => {
       const qs = typeof ex.questions === "string" ? JSON.parse(ex.questions as any) : ex.questions;
       const gapObj = ex.gaps ? (typeof ex.gaps === "string" ? JSON.parse(ex.gaps as any) : ex.gaps) : null;
       const gapCount = gapObj ? Object.keys(gapObj).length : 0;
+      const lvMatch = /LV:([^|]+)/.exec(ex.description || "");
       return {
         ...ex,
-        questions: isStaff ? ex.questions : undefined,
-        gaps: isStaff ? ex.gaps : undefined,
-        content: isStaff ? ex.content : undefined,
+        questions: undefined,
+        gaps: undefined,
+        content: undefined,
+        level: lvMatch ? lvMatch[1].trim() : "",
         questionCount: gapCount > 0 ? gapCount : (Array.isArray(qs) ? qs.length : 0),
       };
     });
