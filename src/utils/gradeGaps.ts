@@ -181,15 +181,9 @@ export function gradeGaps(gaps: any, answers: any): GradeResult {
  * Gợi ý tự động từ đáp án: chữ cái đầu + số chữ cái.
  * VD "increased" → "i________ (9 chữ)".  "in front of" → "i__ f____ o_ (3 từ)".
  */
-function autoHint(answer: string): string {
-  const a = String(answer || "").trim();
-  if (!a) return "";
-  const tokens = a.split(/\s+/);
-  if (tokens.length > 1) {
-    const masked = tokens.map((w) => w[0] + "_".repeat(Math.max(0, w.length - 1))).join(" ");
-    return `${masked} (${tokens.length} từ)`;
-  }
-  return `${a[0]}${"_".repeat(Math.max(0, a.length - 1))} (${a.length} chữ)`;
+function autoHint(_answer: string): string {
+  // Đã TẮT gợi ý tự động — chỉ hiển thị gợi ý do người soạn tự nhập (không lộ đáp án).
+  return "";
 }
 
 /**
