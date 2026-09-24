@@ -3,6 +3,7 @@ import { runWeeklyStudyCheck } from "./weeklyStudyCheck";
 import { runOpenNoWorkCheck } from "./openNoWorkCheck";
 import { runOpeningReminderCheck } from "./openingReminderCheck";
 import prisma from "../config/database";
+import { runDailySummary } from "./dailySummaryJob";
 
 const HOUR = 3600 * 1000;
 const CYCLE_DAYS = 3; // chu kỳ quét tiến độ (chốt: 3 ngày/lần)
@@ -74,5 +75,17 @@ export function startScheduler() {
       }
     } catch (e) { console.error("[Scheduler] Lỗi cron nhắc khai giảng:", e); }
   }, HOUR);
-  console.log("[Scheduler] Đã đăng ký: quét tiến độ (3 ngày/lần) + quét mở-không-làm + nhắc khai giảng (mỗi ngày)");
+  // 5) Tóm tắt học tập mỗi ngày lúc 00:00 giờ VN (=17:00 UTC): đẩy thông báo cho admin.
+  let lastDailySummaryDay = -1;
+  setInterval(async () => {
+    try {
+      const now = new Date();
+      if (now.getUTCHours() >= 17 && now.getUTCDate() !== lastDailySummaryDay) {
+        lastDailySummaryDay = now.getUTCDate();
+        console.log("[Scheduler] Đẩy tóm tắt học tập trong ngày...");
+        await runDailySummary();
+      }
+    } catch (e) { console.error("[Scheduler] Lỗi cron tóm tắt ngày:", e); }
+  }, HOUR);
+  console.log("[Scheduler] Đã đăng ký: quét tiến độ (3 ngày/lần) + quét mở-không-làm + nhắc khai giảng + tóm tắt ngày (0h VN)");
 }

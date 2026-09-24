@@ -2,6 +2,7 @@
 
 import { Router } from "express";
 import * as notification from "../controllers/notification.controller";
+import * as summary from "../controllers/summary.controller";
 import { authenticate } from "../middlewares/auth.middleware";
 import { authorize } from "../middlewares/role.middleware";
 
@@ -18,6 +19,7 @@ router.patch("/read-all", notification.markAllAsRead);
 router.post("/send", authorize("ADMIN", "TEACHER"), notification.sendNotification);
 router.get("/admin/sent", authorize("ADMIN", "TEACHER"), notification.listSentNotifications);
 router.get("/admin/sent-detail", authorize("ADMIN", "TEACHER"), notification.getSentBatchDetail);
+router.get("/admin/daily-summary", authorize("ADMIN", "TEACHER"), summary.getDailySummary);
 router.get("/templates", authorize("ADMIN", "TEACHER"), notification.getTemplates);
 router.post("/templates", authorize("ADMIN", "TEACHER"), notification.saveTemplates);
 
