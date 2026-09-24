@@ -195,9 +195,11 @@ model Notification {
   isRead    Boolean          @default(false)
   type      NotificationType
   link      String?
+  batchId   String?
   createdAt DateTime         @default(now())
   @@index([userId])
   @@index([userId, isRead])
+  @@index([batchId])
   @@map("notifications")
 }
 // ═══════════════════════ CLASS DIARY ═══════════════════════

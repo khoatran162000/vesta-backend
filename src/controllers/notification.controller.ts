@@ -80,6 +80,7 @@ export async function sendNotification(req: Request, res: Response) {
       finalMessage = `<p><strong>${title}</strong></p><p style="color:#1B2A5C;font-weight:600">Bấm để xem nội dung đầy đủ →</p>`;
       link = `/thong-bao/xem/${token}`;
     }
+    const batchId = Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
     const notifications = await prisma.notification.createMany({
       data: targetIds.map((userId) => ({
         userId,
@@ -88,6 +89,7 @@ export async function sendNotification(req: Request, res: Response) {
         type: type || "TEACHER_WARNING",
         isRead: false,
         link,
+        batchId,
       })),
     });
 
@@ -126,27 +128,79 @@ export async function markAllAsRead(req: Request, res: Response) {
 }
 
 // GET /api/notifications/admin/sent — Xem lịch sử thông báo đã gửi (Admin/Teacher)
-export async function listSentNotifications(req: Request, res: Response) {
+export async function listSentNotifications(_req: Request, res: Response) {
   try {
-    const page = Math.max(1, parseInt(req.query.page as string) || 1);
-    const limit = Math.min(50, Math.max(1, parseInt(req.query.limit as string) || 20));
-    const skip = (page - 1) * limit;
+    // Các lần gửi có mã đợt (batchId) — gom chính xác từng lần
+    const batches = await prisma.notification.groupBy({
+      by: ["batchId"],
+      where: { type: "TEACHER_WARNING", batchId: { not: null } },
+      _count: { _all: true },
+      _max: { createdAt: true },
+      orderBy: { _max: { createdAt: "desc" } },
+      take: 50,
+    });
+    const ids = batches.map((b) => b.batchId).filter((x): x is string => !!x);
+    const reps = ids.length
+      ? await prisma.notification.findMany({ where: { batchId: { in: ids } }, distinct: ["batchId"], select: { batchId: true, title: true, message: true, link: true } })
+      : [];
+    const repMap: any = {}; reps.forEach((r) => { repMap[r.batchId as string] = r; });
+    const batched = batches.map((b) => ({
+      batchId: b.batchId, legacyTitle: null as string | null,
+      title: repMap[b.batchId as string]?.title || "", message: repMap[b.batchId as string]?.message || "",
+      link: repMap[b.batchId as string]?.link || null, count: b._count._all, createdAt: b._max.createdAt,
+    }));
 
-    const [notifications, total] = await Promise.all([
-      prisma.notification.findMany({
-        where: { type: "TEACHER_WARNING" },
-        orderBy: { createdAt: "desc" },
-        skip,
-        take: limit,
-        include: {
-          user: { select: { fullName: true, email: true } },
-        },
-      }),
-      prisma.notification.count({ where: { type: "TEACHER_WARNING" } }),
-    ]);
+    // Các lần gửi CŨ (chưa có mã đợt) — gom theo tiêu đề để không mất lịch sử
+    const legacy = await prisma.notification.groupBy({
+      by: ["title"],
+      where: { type: "TEACHER_WARNING", batchId: null },
+      _count: { _all: true }, _max: { createdAt: true },
+      orderBy: { _max: { createdAt: "desc" } }, take: 20,
+    });
+    const ltitles = legacy.map((l) => l.title);
+    const lreps = ltitles.length
+      ? await prisma.notification.findMany({ where: { type: "TEACHER_WARNING", batchId: null, title: { in: ltitles } }, distinct: ["title"], select: { title: true, message: true, link: true } })
+      : [];
+    const lmap: any = {}; lreps.forEach((r) => { lmap[r.title] = r; });
+    const legacyItems = legacy.map((l) => ({
+      batchId: null as string | null, legacyTitle: l.title,
+      title: l.title, message: lmap[l.title]?.message || "", link: lmap[l.title]?.link || null,
+      count: l._count._all, createdAt: l._max.createdAt,
+    }));
 
-    return api.paginated(res, notifications, total, page, limit);
+    const data = [...batched, ...legacyItems]
+      .sort((a, b) => new Date(b.createdAt as any).getTime() - new Date(a.createdAt as any).getTime())
+      .slice(0, 60);
+    return api.success(res, data);
   } catch (err) {
+    console.error("listSentNotifications error:", err);
+    return api.error(res, "Lỗi server", 500);
+  }
+}
+
+// Chi tiết 1 lần gửi: nội dung đầy đủ + danh sách người nhận
+export async function getSentBatchDetail(req: Request, res: Response) {
+  try {
+    const batchId = String(req.query.batchId || "");
+    const legacyTitle = String(req.query.legacyTitle || "");
+    let where: any;
+    if (batchId) where = { batchId };
+    else if (legacyTitle) where = { type: "TEACHER_WARNING", batchId: null, title: legacyTitle };
+    else return api.error(res, "Thiếu batchId hoặc legacyTitle");
+    const notifs = await prisma.notification.findMany({
+      where, orderBy: { createdAt: "asc" },
+      include: { user: { select: { fullName: true, studentCode: true } } },
+    });
+    if (!notifs.length) return api.error(res, "Không tìm thấy lần gửi này", 404);
+    const first = notifs[0];
+    return api.success(res, {
+      title: first.title, message: first.message, link: first.link, createdAt: first.createdAt,
+      total: notifs.length,
+      readCount: notifs.filter((n) => n.isRead).length,
+      recipients: notifs.map((n) => ({ fullName: n.user?.fullName || "—", studentCode: n.user?.studentCode || "", isRead: n.isRead })),
+    });
+  } catch (err) {
+    console.error("getSentBatchDetail error:", err);
     return api.error(res, "Lỗi server", 500);
   }
 }
