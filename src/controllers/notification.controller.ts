@@ -66,13 +66,28 @@ export async function sendNotification(req: Request, res: Response) {
       return api.error(res, "Không tìm thấy người nhận nào");
     }
 
+    // Nội dung NẶNG gửi cho NHIỀU người: lưu 1 bản dùng chung, thông báo chỉ trỏ link
+    // (tránh nhân bản HTML ra hàng trăm bản → vượt gói tin MySQL → lỗi server).
+    let finalMessage = message as string;
+    let link: string | null = (req.body?.link ?? null);
+    if (targetIds.length > 1 && typeof message === "string" && message.length > 50000) {
+      const token = Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+      await prisma.siteContent.upsert({
+        where: { key: `notif_${token}` },
+        update: { data: { html: message, title } as any },
+        create: { key: `notif_${token}`, label: `Thong bao: ${String(title).slice(0, 150)}`, data: { html: message, title } as any },
+      });
+      finalMessage = `<p><strong>${title}</strong></p><p style="color:#1B2A5C;font-weight:600">Bấm để xem nội dung đầy đủ →</p>`;
+      link = `/thong-bao/xem/${token}`;
+    }
     const notifications = await prisma.notification.createMany({
       data: targetIds.map((userId) => ({
         userId,
         title,
-        message,
+        message: finalMessage,
         type: type || "TEACHER_WARNING",
         isRead: false,
+        link,
       })),
     });
 
