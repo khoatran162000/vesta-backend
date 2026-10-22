@@ -154,8 +154,8 @@ export const createExercise = async (req: Request, res: Response) => {
         content: content ?? null,
         gaps: hasGaps ? (normalizeGaps(gaps) as any) : undefined,
         distractors: distractors ?? undefined,
-        visibility: visibility || "PUBLIC",
-        visibleTo: visibleTo || null,
+        visibility: ((visibility || "PUBLIC") === "CLASS" && !String(visibleTo || "").trim()) ? "STUDENT" : (visibility || "PUBLIC"),
+        visibleTo: ((visibility || "PUBLIC") === "CLASS" && !String(visibleTo || "").trim()) ? null : (visibleTo || null),
         isPublished: isPublished || false,
         orderIndex: orderIndex || 0,
         timeLimit: toIntOrNull(timeLimit),      // phút; null = không giới hạn giờ
@@ -175,6 +175,7 @@ export const updateExercise = async (req: Request, res: Response) => {
             questionCount, gaps, timeLimit, maxAttempts,
             gradedCount, attemptsLeft, ...rest } = req.body;
     const data: any = { ...rest };
+    if (data.visibility === "CLASS" && !String(data.visibleTo || "").trim()) { data.visibility = "STUDENT"; data.visibleTo = null; }
     if (gaps !== undefined) {
       data.gaps = gaps && Object.keys(gaps).length > 0 ? (normalizeGaps(gaps) as any) : Prisma.DbNull;
     }
@@ -408,6 +409,20 @@ export const checkExercisePublic = async (req: Request, res: Response) => {
     if (ex.visibility !== "PUBLIC") {
       return res.status(403).json({ success: false, message: "Bài này yêu cầu đăng nhập" });
     }
+    const result = gradeExercise(ex, answers);
+    return res.json({ success: true, data: result });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: "Lỗi chấm bài" });
+  }
+};
+
+// Chấm thử cho ADMIN/TEACHER (không lưu, không giới hạn visibility) — dùng cho nút "Làm thử"
+export const checkExerciseStaff = async (req: Request, res: Response) => {
+  try {
+    const id = String(req.params.id);
+    const { answers } = req.body;
+    const ex = await prisma.interactiveExercise.findUnique({ where: { id } });
+    if (!ex) return res.status(404).json({ success: false, message: "Không tìm thấy" });
     const result = gradeExercise(ex, answers);
     return res.json({ success: true, data: result });
   } catch (error) {

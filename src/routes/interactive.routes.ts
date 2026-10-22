@@ -11,6 +11,7 @@ router.get("/", optionalAuthenticate, ix.listExercises);
 router.get("/open-no-work-stats", authenticate, authorize(...staff), ix.openNoWorkStats);
 router.get("/:id", optionalAuthenticate, ix.getExercise);
 router.post("/:id/check", ix.checkExercisePublic);  // Public chấm bài không lưu (khách)
+router.post("/:id/check-staff", authenticate, authorize(...staff), ix.checkExerciseStaff);  // ADMIN/TEACHER chấm thử
 // Student: start (bài có timer/giới hạn lượt) + submit + xem attempts
 router.post("/:id/start", authenticate, ix.startExercise);
 router.post("/:id/submit", authenticate, ix.submitExercise);
