@@ -1,7 +1,7 @@
+import { safeDate } from "../lib/safeDate";
 // FILE: src/controllers/class.controller.ts — Lớp học + ghi danh học viên
 import { Request, Response } from "express";
-import { PrismaClient } from "@prisma/client";
-const prisma = new PrismaClient();
+import prisma from "../config/database";
 
 const VALID_STATUS = ["ACTIVE", "ENROLL_CLOSED", "FINISHED"];
 
@@ -97,7 +97,7 @@ export const createClass = async (req: Request, res: Response) => {
         teacher: teacher || null,
         schedule: schedule || null,
         room: room || null,
-        startDate: startDate ? new Date(startDate) : null,
+        startDate: safeDate(startDate),
         maxStudents: maxStudents ? parseInt(maxStudents) : null,
         status: VALID_STATUS.includes(status) ? status : "ACTIVE",
         notes: notes || null,
@@ -123,7 +123,7 @@ export const updateClass = async (req: Request, res: Response) => {
     if (teacher !== undefined) data.teacher = teacher || null;
     if (schedule !== undefined) data.schedule = schedule || null;
     if (room !== undefined) data.room = room || null;
-    if (startDate !== undefined) data.startDate = startDate ? new Date(startDate) : null;
+    if (startDate !== undefined) data.startDate = safeDate(startDate);
     if (maxStudents !== undefined) data.maxStudents = maxStudents ? parseInt(maxStudents) : null;
     if (status !== undefined) data.status = VALID_STATUS.includes(status) ? status : "ACTIVE";
     if (notes !== undefined) data.notes = notes || null;

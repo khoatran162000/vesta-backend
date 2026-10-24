@@ -3,8 +3,7 @@
 // FIX: req.user.id → req.user.userId (JWT payload dùng userId)
 // THÊM: getStudentFeedback + createFeedbackForStudent
 import { Request, Response } from "express";
-import { PrismaClient } from "@prisma/client";
-const prisma = new PrismaClient();
+import prisma from "../config/database";
 
 // Helper lấy userId từ JWT payload (payload = { userId, role })
 function uid(req: Request): string {

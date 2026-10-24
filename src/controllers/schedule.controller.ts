@@ -1,8 +1,8 @@
+import { safeDate } from "../lib/safeDate";
 // FILE: src/controllers/schedule.controller.ts — Lịch học cả năm
 import { Request, Response } from "express";
-import { PrismaClient } from "@prisma/client";
+import prisma from "../config/database";
 
-const prisma = new PrismaClient();
 
 // ─── List schedules (public — student/visitor xem được) ───
 export const listSchedules = async (req: Request, res: Response) => {
@@ -13,7 +13,7 @@ export const listSchedules = async (req: Request, res: Response) => {
     if (status) where.status = status;
     if (year) {
       const yearNum = parseInt(year as string);
-      where.startDate = { gte: new Date(`${yearNum}-01-01`), lt: new Date(`${yearNum + 1}-01-01`) };
+      if (!isNaN(yearNum)) where.startDate = { gte: new Date(`${yearNum}-01-01`), lt: new Date(`${yearNum + 1}-01-01`) };
     }
 
     const data = await prisma.classSchedule.findMany({
@@ -46,12 +46,17 @@ export const createSchedule = async (req: Request, res: Response) => {
     if (!course || !className || !startDate || !endDate || !schedule) {
       return res.status(400).json({ success: false, message: "Thiếu thông tin bắt buộc" });
     }
+    const sd = safeDate(startDate);
+    const ed = safeDate(endDate);
+    if (!sd || !ed) {
+      return res.status(400).json({ success: false, message: "Ngày không hợp lệ" });
+    }
 
     const s = await prisma.classSchedule.create({
       data: {
         course, className,
-        startDate: new Date(startDate),
-        endDate: new Date(endDate),
+        startDate: sd,
+        endDate: ed,
         schedule, room, teacher,
         maxStudents: maxStudents || 15,
         status: status || "UPCOMING",
@@ -69,8 +74,8 @@ export const createSchedule = async (req: Request, res: Response) => {
 export const updateSchedule = async (req: Request, res: Response) => {
   try {
     const data: any = { ...req.body };
-    if (data.startDate) data.startDate = new Date(data.startDate);
-    if (data.endDate) data.endDate = new Date(data.endDate);
+    if (data.startDate) data.startDate = safeDate(data.startDate) ?? undefined;
+    if (data.endDate) data.endDate = safeDate(data.endDate) ?? undefined;
     const s = await prisma.classSchedule.update({ where: { id: String(req.params.id) }, data });
     return res.json({ success: true, data: s });
   } catch {

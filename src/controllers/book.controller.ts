@@ -1,7 +1,6 @@
 // FILE: src/controllers/book.controller.ts — CRUD sách/giáo trình (landing)
 import { Request, Response } from "express";
-import { PrismaClient } from "@prisma/client";
-const prisma = new PrismaClient();
+import prisma from "../config/database";
 
 function toBool(v: any, def = false) {
   if (v === undefined || v === null) return def;

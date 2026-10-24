@@ -1,7 +1,6 @@
 // FILE: src/controllers/sessionDiary.controller.ts — Nhật ký buổi học theo lớp (tự đổ từ điểm danh)
 import { Request, Response } from "express";
-import { PrismaClient } from "@prisma/client";
-const prisma = new PrismaClient();
+import prisma from "../config/database";
 
 function uid(req: Request): string {
   return (req as any).user?.userId || "";

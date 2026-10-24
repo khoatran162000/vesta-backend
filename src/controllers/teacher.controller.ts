@@ -1,7 +1,6 @@
 // FILE: src/controllers/teacher.controller.ts — CRUD giáo viên (landing)
 import { Request, Response } from "express";
-import { PrismaClient } from "@prisma/client";
-const prisma = new PrismaClient();
+import prisma from "../config/database";
 
 // GET /teachers — landing lấy published, admin/staff lấy tất cả
 export const listTeachers = async (req: Request, res: Response) => {

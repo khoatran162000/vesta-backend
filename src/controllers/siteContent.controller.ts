@@ -1,7 +1,6 @@
 // FILE: src/controllers/siteContent.controller.ts — Nội dung khối tĩnh landing
 import { Request, Response } from "express";
-import { PrismaClient } from "@prisma/client";
-const prisma = new PrismaClient();
+import prisma from "../config/database";
 
 function parseJsonField(val: any, fallback: any) {
   if (val === undefined || val === null || val === "") return fallback;

@@ -1,3 +1,4 @@
+import { safeDate } from "../lib/safeDate";
 // FILE: src/controllers/user.controller.ts — Quan ly tai khoan voi studentCode, phone, address
 import { Request, Response } from "express";
 import bcrypt from "bcryptjs";
@@ -108,7 +109,7 @@ export async function createUser(req: Request, res: Response) {
     }
     // Validate theo role
     if (role === "STUDENT") {
-      const start = startDate ? new Date(startDate) : new Date();
+      const start = safeDate(startDate) ?? new Date();
       // Mã HV: admin gõ tay thì dùng (kiểm trùng), không thì sinh theo công thức {tên}{lớp}{ddmmyy}
       let code = studentCode ? String(studentCode).trim() : studentCode;
       if (code) {
@@ -346,7 +347,7 @@ export async function bulkCreateStudents(req: Request, res: Response) {
           continue;
         }
       } else {
-        const start = s.startDate ? new Date(s.startDate) : new Date();
+        const start = safeDate(s.startDate) ?? new Date();
         code = await generateUniqueStudentCode(s.fullName, s.course, start);
       }
 
@@ -361,7 +362,7 @@ export async function bulkCreateStudents(req: Request, res: Response) {
           phone: phone || null,
           address: s.address || null,
           course: s.course || null,
-          startDate: s.startDate ? new Date(s.startDate) : new Date(),
+          startDate: safeDate(s.startDate) ?? new Date(),
           role: "STUDENT",
           regStatus: "CONFIRMED",
           isActive: true,

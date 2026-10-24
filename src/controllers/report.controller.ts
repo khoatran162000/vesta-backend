@@ -1,8 +1,7 @@
 // FILE: src/controllers/report.controller.ts — Báo cáo định kỳ hàng tuần (form + HTML dán + link chia sẻ)
 import { Request, Response } from "express";
-import { PrismaClient } from "@prisma/client";
+import prisma from "../config/database";
 import crypto from "crypto";
-const prisma = new PrismaClient();
 
 function uid(req: Request): string | undefined {
   return (req as any).user?.userId;

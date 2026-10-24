@@ -1,6 +1,5 @@
 import { Request, Response } from "express";
-import { PrismaClient } from "@prisma/client";
-const prisma = new PrismaClient();
+import prisma from "../config/database";
 
 // Public — danh sách trình độ đang bật, để admin/landing đổ dropdown
 export const listLevels = async (_req: Request, res: Response) => {

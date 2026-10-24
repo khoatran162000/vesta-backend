@@ -2,9 +2,9 @@
 // Bài tập tương tác — hỗ trợ cả mô hình GAP (LearnClick) lẫn questions cũ
 // 2-phase (start→submit) CHỈ kích hoạt khi bài có timeLimit hoặc maxAttempts; bài cũ giữ luồng submit-thẳng.
 import { Request, Response } from "express";
-import { PrismaClient, Prisma } from "@prisma/client";
+import { Prisma } from "@prisma/client";
+import prisma from "../config/database";
 import { gradeGaps, normalizeGaps, stripGapAnswers } from "../utils/gradeGaps";
-const prisma = new PrismaClient();
 import { refreshStudyFlag } from "../lib/studentProgress";
 function uid(req: Request): string | undefined {
   return (req as any).user?.userId;

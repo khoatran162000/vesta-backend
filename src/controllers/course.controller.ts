@@ -1,7 +1,6 @@
 // FILE: src/controllers/course.controller.ts — CRUD khoá học (landing)
 import { Request, Response } from "express";
-import { PrismaClient } from "@prisma/client";
-const prisma = new PrismaClient();
+import prisma from "../config/database";
 
 function parseJsonField(val: any, fallback: any) {
   if (val === undefined || val === null || val === "") return fallback;

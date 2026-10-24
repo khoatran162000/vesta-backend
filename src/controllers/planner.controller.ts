@@ -1,7 +1,6 @@
 // FILE: src/controllers/planner.controller.ts — Lịch công tác nội bộ (TKB tuần + nhiệm vụ)
 import { Request, Response } from "express";
-import { PrismaClient } from "@prisma/client";
-const prisma = new PrismaClient();
+import prisma from "../config/database";
 
 // Khung giờ (khớp frontend). Dùng để kiểm tra trùng giờ.
 const SLOT_TIMES: Record<string, [number, number]> = {
