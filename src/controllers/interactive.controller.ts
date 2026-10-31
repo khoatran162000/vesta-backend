@@ -435,7 +435,7 @@ export const getExerciseAttempts = async (req: Request, res: Response) => {
     const exerciseId = String(req.params.id);
     const ex = await prisma.interactiveExercise.findUnique({
       where: { id: exerciseId },
-      select: { id: true, title: true, type: true },
+      select: { id: true, title: true, type: true, content: true, gaps: true },
     });
     if (!ex) return res.status(404).json({ success: false, message: "Không tìm thấy bài tập" });
     const attempts = await prisma.interactiveAttempt.findMany({
@@ -455,6 +455,7 @@ export const getExerciseAttempts = async (req: Request, res: Response) => {
         studentName: a.student?.fullName || "(khách vãng lai)",
         studentCode: a.student?.studentCode || null,
         score: a.score,
+        answers: a.answers,
         detail: a.detail,
         isGraded: a.isGraded,
         autoSubmitted: a.autoSubmitted,
