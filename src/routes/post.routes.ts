@@ -8,7 +8,7 @@ import { Router } from "express";
 import * as post from "../controllers/post.controller";
 import { authenticate } from "../middlewares/auth.middleware";
 import { authorize } from "../middlewares/role.middleware";
-import { uploadThumbnail, uploadImages, uploadContentImageFile } from "../middlewares/upload.middleware";
+import { uploadThumbnail, uploadImages, uploadContentImageFile, uploadContentMediaFile } from "../middlewares/upload.middleware";
 
 const router = Router();
 const cmsRoles = ["ADMIN", "CONTENT_CREATOR"];
@@ -27,5 +27,6 @@ router.delete("/:id", authenticate, authorize(...cmsRoles), post.deletePost);
 
 // Upload ảnh trong nội dung bài viết (TipTap editor)
 router.post("/upload-image", authenticate, authorize(...cmsRoles), uploadContentImageFile, post.uploadContentImage);
+router.post("/upload-media", authenticate, authorize(...cmsRoles), uploadContentMediaFile, post.uploadContentImage);
 
 export default router;

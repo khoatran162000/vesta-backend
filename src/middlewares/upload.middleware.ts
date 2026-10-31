@@ -53,6 +53,17 @@ export const uploadContentImageFile = multer({
   limits: { fileSize: MAX_SIZE },
 }).single("image");
 
+// Upload audio/video nội dung bài viết → uploads/blog/, field "media" (mp3/mp4...), tối đa 45MB
+function mediaFileFilter(_req: any, file: Express.Multer.File, cb: multer.FileFilterCallback) {
+  if (/^audio\//.test(file.mimetype) || /^video\//.test(file.mimetype)) cb(null, true);
+  else cb(new Error("Chỉ nhận file audio hoặc video"));
+}
+export const uploadContentMediaFile = multer({
+  storage,
+  fileFilter: mediaFileFilter,
+  limits: { fileSize: 45 * 1024 * 1024 },
+}).single("media");
+
 // Upload avatar
 const avatarStorage = multer.diskStorage({
   destination: (_req, _file, cb) => {
