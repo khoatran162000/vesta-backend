@@ -399,6 +399,50 @@ export const getMyAttempts = async (req: Request, res: Response) => {
   });
   return res.json({ success: true, data });
 };
+// --- Admin/Teacher: lich su lam BAI TAP cua 1 hoc vien (gom theo tung bai, kieu LearnClick) ---
+export const getStudentExerciseAttempts = async (req: Request, res: Response) => {
+  try {
+    const studentId = String(req.params.studentId);
+    const attempts = await prisma.interactiveAttempt.findMany({
+      where: { studentId, status: "SUBMITTED" },
+      orderBy: { createdAt: "desc" },
+      include: { exercise: { select: { id: true, title: true, type: true } } },
+    });
+    const map = new Map<string, any>();
+    for (const a of attempts) {
+      const key = a.exercise?.id || a.exerciseId;
+      let row = map.get(key);
+      if (!row) {
+        row = {
+          exerciseId: key,
+          title: a.exercise?.title || "(bài đã xoá)",
+          type: a.exercise?.type || null,
+          attempts: 0,
+          bestScore: null as number | null,
+          lastScore: typeof a.score === "number" ? a.score : null,
+          lastAt: a.createdAt,
+        };
+        map.set(key, row);
+      }
+      row.attempts += 1;
+      if (typeof a.score === "number" && (row.bestScore === null || a.score > row.bestScore)) {
+        row.bestScore = a.score;
+      }
+    }
+    const rows = Array.from(map.values()).sort(
+      (x, y) => new Date(y.lastAt).getTime() - new Date(x.lastAt).getTime()
+    );
+    const scored = rows.filter((r) => typeof r.bestScore === "number");
+    const stats = {
+      totalExercises: rows.length,
+      totalAttempts: attempts.length,
+      avgBest: scored.length ? Math.round(scored.reduce((s, r) => s + r.bestScore, 0) / scored.length) : null,
+    };
+    return res.json({ success: true, data: rows, stats });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: "Lỗi lấy lịch sử bài tập" });
+  }
+};
 // ─── Public check (KHÔNG lưu) ───
 export const checkExercisePublic = async (req: Request, res: Response) => {
   try {
