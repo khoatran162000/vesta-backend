@@ -17,5 +17,6 @@ router.use(authenticate, authorize(...roles));
 router.get("/", attempt.listAttempts);
 router.get("/:id", attempt.getAttemptById);
 router.get("/student/:studentId/stats", attempt.getStudentStats);
+router.get("/exam/:examId/results", attempt.getExamResults);
 
 export default router;

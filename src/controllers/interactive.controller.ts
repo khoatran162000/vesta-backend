@@ -9,25 +9,35 @@ import { refreshStudyFlag } from "../lib/studentProgress";
 function uid(req: Request): string | undefined {
   return (req as any).user?.userId;
 }
-// JWT chỉ có { userId, role } → phải lấy course từ DB (và HS chuyển lớp thì token cũ vẫn đúng)
-async function studentCourse(req: Request): Promise<string | null> {
+// JWT chỉ có { userId, role } → lấy TẤT CẢ trình độ HS đang học từ DB:
+// trường course + course của mọi lớp đang STUDYING (HS có thể học nhiều lớp / nhiều trình độ).
+async function studentCourses(req: Request): Promise<string[]> {
   const id = uid(req);
-  if (!id) return null;
-  const u = await prisma.user.findUnique({ where: { id }, select: { course: true } });
-  return u?.course || null;
+  if (!id) return [];
+  const [u, enrolls] = await Promise.all([
+    prisma.user.findUnique({ where: { id }, select: { course: true } }),
+    prisma.classEnrollment.findMany({
+      where: { studentId: id, status: "STUDYING" },
+      select: { class: { select: { course: true } } },
+    }),
+  ]);
+  const set = new Set<string>();
+  if (u?.course) set.add(u.course.trim());
+  enrolls.forEach((e) => { const c = e.class?.course?.trim(); if (c) set.add(c); });
+  return [...set].filter(Boolean);
 }
 async function getVisibilityFilter(req: Request) {
   const user = (req as any).user;
   if (!user) return { visibility: "PUBLIC", isPublished: true };
   if (user.role === "ADMIN" || user.role === "TEACHER") return {};
   if (user.role === "STUDENT") {
-    const course = await studentCourse(req);
+    const courses = await studentCourses(req);
     return {
       isPublished: true,
       OR: [
         { visibility: "PUBLIC" },
         { visibility: "STUDENT" },
-        ...(course ? [{ visibility: "CLASS", visibleTo: { contains: course } }] : []),
+        ...courses.map((c) => ({ visibility: "CLASS", visibleTo: { contains: c } })),
       ],
     };
   }
@@ -102,8 +112,9 @@ export const getExercise = async (req: Request, res: Response) => {
       return res.status(401).json({ success: false, message: "Vui lòng đăng nhập" });
     }
     if (user?.role === "STUDENT" && ex.visibility === "CLASS") {
-      const course = await studentCourse(req);
-      if (!course || !ex.visibleTo?.includes(course)) {
+      const courses = await studentCourses(req);
+      const vt = ex.visibleTo || "";
+      if (!courses.some((c) => vt.includes(c))) {
         return res.status(403).json({ success: false, message: "Bạn không có quyền xem bài này" });
       }
     }

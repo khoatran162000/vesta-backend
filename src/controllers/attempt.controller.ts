@@ -46,6 +46,54 @@ export async function listAttempts(req: Request, res: Response) {
   }
 }
 
+// GET /api/attempts/exam/:examId/results — Admin/Teacher: ai da lam de + diem (moi HS tinh luot moi nhat)
+export async function getExamResults(req: Request<Params>, res: Response) {
+  try {
+    const examId = req.params.examId as string;
+    const exam = await prisma.exam.findUnique({
+      where: { id: examId },
+      select: { id: true, title: true, totalScore: true, duration: true },
+    });
+    if (!exam) return api.error(res, "Đề thi không tồn tại", 404);
+    const attempts = await prisma.examAttempt.findMany({
+      where: { examId },
+      orderBy: { createdAt: "desc" },
+      include: { student: { select: { id: true, fullName: true, studentCode: true } } },
+    });
+    const countByStudent: Record<string, number> = {};
+    attempts.forEach((a) => { const k = a.studentId || ("g-" + a.id); countByStudent[k] = (countByStudent[k] || 0) + 1; });
+    const seen = new Set<string>();
+    const students: any[] = [];
+    for (const a of attempts) {
+      const key = a.studentId || ("g-" + a.id);
+      if (seen.has(key)) continue;
+      seen.add(key);
+      students.push({
+        attemptId: a.id,
+        studentId: a.studentId,
+        studentName: a.student?.fullName || "(không rõ)",
+        studentCode: a.student?.studentCode || null,
+        score: a.score,
+        status: a.status,
+        autoSubmitted: a.autoSubmitted,
+        attemptCount: countByStudent[key] || 1,
+        createdAt: a.createdAt,
+      });
+    }
+    const scored = students.filter((s) => typeof s.score === "number" && s.status === "SUBMITTED");
+    const avgScore = scored.length ? Math.round((scored.reduce((sum, s) => sum + s.score, 0) / scored.length) * 10) / 10 : null;
+    return api.success(res, {
+      exam,
+      totalStudents: students.length,
+      totalAttempts: attempts.length,
+      avgScore,
+      students,
+    });
+  } catch (err) {
+    return api.error(res, "Lỗi server", 500);
+  }
+}
+
 // GET /api/attempts/:id — Chi tiết 1 lượt thi kèm câu hỏi + đáp án đúng/sai
 export async function getAttemptById(req: Request<Params>, res: Response) {
   try {
