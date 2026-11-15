@@ -420,6 +420,7 @@ export const getStudentExerciseAttempts = async (req: Request, res: Response) =>
           attempts: 0,
           bestScore: null as number | null,
           lastScore: typeof a.score === "number" ? a.score : null,
+          lastAttemptId: a.id,
           lastAt: a.createdAt,
         };
         map.set(key, row);
@@ -441,6 +442,38 @@ export const getStudentExerciseAttempts = async (req: Request, res: Response) =>
     return res.json({ success: true, data: rows, stats });
   } catch (error) {
     return res.status(500).json({ success: false, message: "Lỗi lấy lịch sử bài tập" });
+  }
+};
+// --- Admin/Teacher: xem 1 luot lam bai tap cua HV (noi dung + dap an + diem) ---
+export const getInteractiveAttemptDetail = async (req: Request, res: Response) => {
+  try {
+    const attemptId = String(req.params.attemptId);
+    const a = await prisma.interactiveAttempt.findUnique({
+      where: { id: attemptId },
+      include: {
+        exercise: { select: { id: true, title: true, content: true, gaps: true, type: true } },
+        student: { select: { fullName: true, studentCode: true } },
+      },
+    });
+    if (!a) return res.status(404).json({ success: false, message: "Không tìm thấy lượt làm bài" });
+    return res.json({
+      success: true,
+      data: {
+        exercise: a.exercise,
+        attempt: {
+          id: a.id,
+          answers: a.answers,
+          score: a.score,
+          totalScore: a.totalScore,
+          detail: a.detail,
+          createdAt: a.createdAt,
+          studentName: a.student?.fullName || null,
+          studentCode: a.student?.studentCode || null,
+        },
+      },
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: "Lỗi lấy lượt làm bài" });
   }
 };
 // ─── Public check (KHÔNG lưu) ───

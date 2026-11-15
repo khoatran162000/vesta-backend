@@ -18,6 +18,7 @@ router.post("/:id/submit", authenticate, ix.submitExercise);
 router.post("/:id/view", authenticate, ix.recordView);
 router.get("/my/attempts", authenticate, ix.getMyAttempts);
 router.get("/student/:studentId/attempts", authenticate, authorize(...staff), ix.getStudentExerciseAttempts);
+router.get("/attempt-detail/:attemptId", authenticate, authorize(...staff), ix.getInteractiveAttemptDetail);
 // Admin/Teacher: CRUD
 router.get("/:id/attempts", authenticate, authorize(...staff), ix.getExerciseAttempts);
 // Bài tập = nội dung của trung tâm: chỉ ADMIN tạo/sửa/xoá
